@@ -12,6 +12,7 @@ import Library from "./pages/teacher-portal/Library";
 
 export default function App() {
   return (
+    <div className="app-teacher">
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<TeacherDashboard />} />
@@ -24,5 +25,6 @@ export default function App() {
         <Route path="/library" element={<Library />} />
       </Route>
     </Routes>
+    </div>
   );
 }

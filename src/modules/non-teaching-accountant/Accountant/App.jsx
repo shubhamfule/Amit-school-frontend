@@ -17,6 +17,7 @@ import ComingSoon from "./ComingSoon";
 
 export default function App() {
   return (
+    <div className="app-non-teaching-accountant">
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<Dashboard />} />
@@ -38,5 +39,6 @@ export default function App() {
         <Route path="*" element={<ComingSoon title="Page not found" />} />
       </Route>
     </Routes>
+    </div>
   );
 }

@@ -17,6 +17,7 @@ import Settings from './pages/Settings';
 
 export default function App() {
   return (
+    <div className="app-admin">
     <ThemeProvider>
       <ToastProvider>
           <Routes>
@@ -41,5 +42,6 @@ export default function App() {
           </Routes>
       </ToastProvider>
     </ThemeProvider>
+    </div>
   );
 }

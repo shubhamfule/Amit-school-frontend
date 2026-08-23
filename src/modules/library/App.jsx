@@ -14,6 +14,7 @@ import Settings from './library/pages/Settings';
 
 export default function App() {
   return (
+    <div className="app-library">
     <ToastProvider>
         <Routes>
           {/* Layout (sidebar + header) stays mounted across all these routes */}
@@ -33,5 +34,6 @@ export default function App() {
           <Route path="*" element={<Navigate to="/library" replace />} />
         </Routes>
     </ToastProvider>
+    </div>
   );
 }

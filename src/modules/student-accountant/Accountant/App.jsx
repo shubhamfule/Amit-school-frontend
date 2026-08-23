@@ -25,6 +25,7 @@ function ProtectedLayout() {
 
 export default function App() {
   return (
+    <div className="app-student-accountant">
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route element={<ProtectedLayout />}>
@@ -47,5 +48,6 @@ export default function App() {
         <Route path="*" element={<ComingSoon title="Page not found" />} />
       </Route>
     </Routes>
+    </div>
   );
 }

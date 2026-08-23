@@ -8,5 +8,5 @@ export default function App() {
     ...studentRoutes
   ]);
 
-  return element;
+  return <div className="app-student">{element}</div>;
 }
