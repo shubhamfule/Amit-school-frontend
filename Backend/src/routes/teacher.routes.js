@@ -8,7 +8,7 @@ const crudRouter = require("../utils/crudRouter");
 const catchAsync = require("../utils/catchAsync");
 const ApiError = require("../utils/ApiError");
 const { protect, authorize } = require("../middleware/auth");
-const { StudentAttendance, Mark, ScheduleEntry, Assignment } = require("../module/teacher");
+const { StudentAttendance, Mark, ScheduleEntry, Assignment } = require("../module/Teacher");
 
 const TEACHER_ROLES = ["admin", "teacher"];
 const router = Router();

@@ -5,7 +5,7 @@
 
 const { Router } = require("express");
 const crudRouter = require("../utils/crudRouter");
-const { Certificate, ParentInfo, Exam, Result } = require("../module/student");
+const { Certificate, ParentInfo, Exam, Result } = require("../module/Student");
 
 const STUDENT_ROLES = ["admin", "student"];
 const router = Router();

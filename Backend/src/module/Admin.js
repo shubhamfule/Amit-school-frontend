@@ -87,6 +87,13 @@ const studentSchema = new Schema(
     // directoryData.jsx: admission status (Active/Pending), fee tracked
     // separately via feeStatus above; teacher portal's StudentPortal.jsx:
     // enrollment status (Active/Inactive). All three value sets accepted.
+    // AUDITED: the /students route (routes/Admin.routes.js) is a plain
+    // crudRouter(Student, {...}) with no `filterableFields` and no
+    // status-specific logic anywhere in crudFactory.js — the backend never
+    // interprets `status`, only stores and echoes back whatever value a
+    // portal wrote. So there is no server-side read path that could apply
+    // one portal's meaning to another portal's value; each portal only ever
+    // sees status values it (or Admin) wrote for its own case. No fix needed.
     status: { type: String, enum: ["Active", "Inactive", "Pending", "Paid"], default: "Active" },
   },
   { timestamps: true }

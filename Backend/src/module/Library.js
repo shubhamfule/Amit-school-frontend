@@ -4,7 +4,7 @@
 // Members, FinesFees, LeaveApplications, Events, CalendarPage, staffData.js.
 // This is the dedicated library-staff portal; its data is the richest real
 // usage of the library models, which is why several fixes landed in
-// Main-accountant.js instead of being redefined here (bookId no longer
+// library-shared.js instead of being redefined here (bookId no longer
 // required on BookIssue/BookReturn, memberId added for the reused-ID
 // pattern this portal's IssueReturn.jsx uses, damageType/clearanceAmount/
 // payment added to BookReturn, publisher + Overdue status added to Book).
@@ -13,14 +13,14 @@
 //
 // Reuses LeaveApplication / Event / CalendarEvent from Admin.js, and Book /
 // BookIssue / BookReturn / LibraryFine / LibraryClearance from
-// Main-accountant.js. One model is genuinely new: LibraryMember — no other
+// library-shared.js. One model is genuinely new: LibraryMember — no other
 // portal file has anything resembling it (a borrowing-standing record, not
 // a person record).
 
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
 const { LeaveApplication, Event, CalendarEvent } = require("./Admin");
-const { Book, BookIssue, BookReturn, LibraryFine, LibraryClearance } = require("./Main-accountant");
+const { Book, BookIssue, BookReturn, LibraryFine, LibraryClearance } = require("./library-shared");
 
 // ---- Library Member -----------------------------------------------------
 // Matches Members.jsx exactly: { id, name, subject, role, issued, returned,
