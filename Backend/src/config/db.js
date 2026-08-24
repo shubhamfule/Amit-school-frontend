@@ -1,8 +1,10 @@
-import mongoose from 'mongoose';
-import { env } from './env.js';
-export async function connectDB(){
-  mongoose.connection.on('error',err=>console.error('MongoDB error:',err.message));
-  await mongoose.connect(env.MONGODB_URI,{serverSelectionTimeoutMS:10000});
-  console.log(`MongoDB connected: ${mongoose.connection.name}`);
+const mongoose = require("mongoose");
+const { mongoUri } = require("./env");
+
+async function connectDB(uri = mongoUri) {
+  mongoose.set("strictQuery", true);
+  await mongoose.connect(uri);
+  return mongoose.connection;
 }
-export async function disconnectDB(){await mongoose.disconnect();}
+
+module.exports = connectDB;

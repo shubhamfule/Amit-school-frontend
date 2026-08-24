@@ -1,2 +1,19 @@
-import { fail } from '../utils/api.js';
-export const validateBody=schema=>(req,res,next)=>{const r=schema.safeParse(req.body);if(!r.success)return fail(res,'Validation failed',422,r.error.flatten());req.body=r.data;next();};
+const ApiError = require("../utils/ApiError");
+
+// Validates req[source] against a Joi schema, replacing it with the coerced value.
+function validate(schema, source = "body") {
+  return (req, res, next) => {
+    const { error, value } = schema.validate(req[source], {
+      abortEarly: false,
+      stripUnknown: true,
+    });
+    if (error) {
+      const details = error.details.map((d) => d.message);
+      return next(new ApiError(400, "Validation failed", details));
+    }
+    req[source] = value;
+    next();
+  };
+}
+
+module.exports = validate;
