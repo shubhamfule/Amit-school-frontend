@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const connectDB = require("../src/config/db");
-const User = require("../src/modules/auth/model/User");
+const { User } = require("../src/module/Admin");
 
 const ACCOUNTS = [
   { username: "admin", email: "admin@amitschool.edu", password: "Admin@123", role: "admin", label: "Admin" },

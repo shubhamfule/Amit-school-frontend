@@ -2,7 +2,7 @@ const jwt = require("jsonwebtoken");
 const ApiError = require("../utils/ApiError");
 const catchAsync = require("../utils/catchAsync");
 const { jwtSecret, cookieName } = require("../config/env");
-const User = require("../modules/auth/model/User");
+const { User } = require("../module/Admin");
 
 const protect = catchAsync(async (req, res, next) => {
   const token =
