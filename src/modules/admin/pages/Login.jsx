@@ -39,14 +39,14 @@ export default function Login() {
         </div>
       </header>
 
-      <div className="login-tagline">SCHOOL MANAGEMENT SYSTEM</div>
+      <div className="login-tagline"> AMIT SCHOOL MANAGEMENT SYSTEM</div>
 
       <div className="login-wrap">
         <div className="login-container">
           <div className="login-box">
             <div className="login-icon"><i className="ti ti-lock-access"></i></div>
             <div className="login-content">
-              <h2>Admin Login</h2>
+              <h2>Login</h2>
               <p>Secure access for registered users</p>
             </div>
           </div>

@@ -558,7 +558,13 @@ table.table { width: 100%; background: var(--surface); color: var(--text-primary
 .status-chip.unpaid { background: var(--amber-light); color: var(--amber); }
 
 /* ── Premium KPI cards (Dashboard) ── */
-.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 18px; margin-bottom: 24px; }
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 18px; margin-bottom: 24px; }
+@media (max-width: 1200px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .kpi-grid { grid-template-columns: 1fr; }
+}
 .kpi-card {
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card); padding: 20px; display: flex; flex-direction: column; gap: 12px;
@@ -574,7 +580,13 @@ table.table { width: 100%; background: var(--surface); color: var(--text-primary
 .kpi-label { font-size: 12.5px; color: var(--text-muted); font-weight: 500; }
 
 /* ── Quick actions ── */
-.quick-actions-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.quick-actions-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 24px; }
+@media (max-width: 1200px) {
+  .quick-actions-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 480px) {
+  .quick-actions-grid { grid-template-columns: repeat(2, 1fr); }
+}
 .quick-action-btn {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
@@ -782,6 +794,15 @@ table.table { width: 100%; background: var(--surface); color: var(--text-primary
 }
 .mini-cal-cell.is-muted { color: var(--text-muted); opacity: 0.45; }
 .mini-cal-cell.is-today { background: var(--purple-dark); color: #fff; font-weight: 700; }
+
+/* Smaller, denser Calendar + Recent Notices row on the main Dashboard */
+.compact-widgets-row .widget-card { padding: 14px 16px; }
+.compact-widgets-row .widget-card h4 { font-size: 12.5px; margin-bottom: 8px; }
+.compact-widgets-row .mini-cal-grid { gap: 3px; }
+.compact-widgets-row .mini-cal-cell { aspect-ratio: unset; height: 24px; font-size: 11px; }
+.compact-widgets-row .mini-cal-month-label { font-size: 11.5px; min-width: 90px; }
+.compact-widgets-row .mini-cal-nav-btn { width: 22px; height: 22px; font-size: 11px; }
+.compact-widgets-row .widget-list li { font-size: 11.5px; padding-bottom: 8px; gap: 8px; }
 
 .attendance-cal-wrap { margin-top: 24px; }
 .attendance-cal-card { max-width: 480px; }

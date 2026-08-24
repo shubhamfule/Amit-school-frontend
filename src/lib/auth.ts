@@ -13,6 +13,7 @@ export type Role =
 
 export interface DemoUser {
   username: string;
+  email: string;
   password: string;
   role: Role;
   label: string;
@@ -20,24 +21,23 @@ export interface DemoUser {
 }
 
 export const DEMO_USERS: DemoUser[] = [
-  { username: "admin", password: "admin123", role: "admin", label: "Admin", basePath: "/admin" },
-  { username: "library", password: "library123", role: "library", label: "Library Staff", basePath: "/library" },
-  { username: "mainaccountant", password: "acc123", role: "main-accountant", label: "Main Accountant", basePath: "/main-accountant" },
-  { username: "nonteachingaccountant", password: "acc123", role: "non-teaching-accountant", label: "Non-Teaching Accountant", basePath: "/non-teaching-accountant" },
-  { username: "studentaccountant", password: "acc123", role: "student-accountant", label: "Student Accountant", basePath: "/student-accountant" },
-  { username: "student", password: "student123", role: "student", label: "Student", basePath: "/student" },
-  { username: "teacher", password: "teacher123", role: "teacher", label: "Teacher", basePath: "/teacher" },
-  { username: "teachingaccountant", password: "acc123", role: "teaching-accountant", label: "Teaching Accountant", basePath: "/teaching-accountant" },
+  { username: "admin", email: "admin@amitschool.edu", password: "admin123", role: "admin", label: "Admin", basePath: "/admin" },
+  { username: "library", email: "library@amitschool.edu", password: "library123", role: "library", label: "Library Staff", basePath: "/library" },
+  { username: "mainaccountant", email: "mainaccountant@amitschool.edu", password: "acc123", role: "main-accountant", label: "Main Accountant", basePath: "/main-accountant" },
+  { username: "nonteachingaccountant", email: "nonteachingaccountant@amitschool.edu", password: "acc123", role: "non-teaching-accountant", label: "Non-Teaching Accountant", basePath: "/non-teaching-accountant" },
+  { username: "studentaccountant", email: "studentaccountant@amitschool.edu", password: "acc123", role: "student-accountant", label: "Student Accountant", basePath: "/student-accountant" },
+  { username: "student", email: "student@amitschool.edu", password: "student123", role: "student", label: "Student", basePath: "/student" },
+  { username: "teacher", email: "teacher@amitschool.edu", password: "teacher123", role: "teacher", label: "Teacher", basePath: "/teacher" },
+  { username: "teachingaccountant", email: "teachingaccountant@amitschool.edu", password: "acc123", role: "teaching-accountant", label: "Teaching Accountant", basePath: "/teaching-accountant" },
 ];
 
 const STORAGE_KEY = "amitSchoolAuthUser";
 
-export function login(username: string, password: string): DemoUser | null {
-  const normalizedUsername = username.trim().toLowerCase();
+export function login(identifier: string, password: string): DemoUser | null {
+  const normalized = identifier.trim().toLowerCase();
   const match = DEMO_USERS.find(
     (u) =>
-      (u.username.toLowerCase() === normalizedUsername ||
-        `${u.username.toLowerCase()}@amitschool.edu` === normalizedUsername) &&
+      (u.username.toLowerCase() === normalized || u.email.toLowerCase() === normalized) &&
       u.password === password
   );
   if (match) {

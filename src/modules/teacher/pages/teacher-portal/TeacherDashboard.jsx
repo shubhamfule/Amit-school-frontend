@@ -8,7 +8,6 @@ const quickAccess = [
   { icon: "bi bi-clipboard2-check", label: "Mark Attendance", to: "/teacher/attendance" },
   { icon: "bi bi-graph-up", label: "Enter Marks", to: "/teacher/marks" },
   { icon: "bi bi-journal-plus", label: "Create Assignment", to: "/teacher/assignments" },
-  { icon: "bi bi-journal-text", label: "Add Lesson Plan", to: "/teacher/lesson-plans" },
   { icon: "bi bi-envelope-plus", label: "Leave Applications", to: "/teacher/leave-applications" },
 ];
 

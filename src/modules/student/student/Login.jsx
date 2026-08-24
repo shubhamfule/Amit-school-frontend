@@ -1,17 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { login } from "../../../lib/auth";
 
-/**
- * Converted from main.html. The original had a title/heading mismatch
- * ("Teacher Registration Portal" title vs "STUDENT-LOGIN" heading) —
- * kept the student-login copy since that matches where it actually
- * redirects (the student dashboard), and fixed the title to match.
- *
- * NOTE: Auth is currently bypassed — this page redirects straight to
- * /dashboard on load instead of showing the login form. The form/state
- * logic below is kept intact so the login flow can be restored later
- * by removing the redirect in the useEffect.
- */
 export default function Login() {
   const [userId, setUserId] = useState("");
   const [password, setPassword] = useState("");
@@ -21,14 +11,16 @@ export default function Login() {
 
   useEffect(() => {
     document.title = "Student Login – Amit Group of Schools";
-
-    // Auth bypass: skip login and go straight to the dashboard.
-    navigate("/student/dashboard", { replace: true });
-  }, [navigate]);
+  }, []);
 
   function handleSubmit(e) {
     e.preventDefault();
     if (!userId.trim() || !password.trim()) {
+      setShowError(true);
+      return;
+    }
+    const user = login(userId.trim(), password.trim());
+    if (!user) {
       setShowError(true);
       return;
     }

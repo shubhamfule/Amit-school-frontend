@@ -31,7 +31,7 @@ export default function App() {
         <Route path="/" element={<RootRedirect />} />
         <Route path="/login" element={<Navigate to="/admin/login" replace />} />
 
-        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/login" element={<div className="app-admin"><AdminLogin /></div>} />
 
         <Route
           path="/admin/*"

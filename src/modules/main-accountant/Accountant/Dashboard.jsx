@@ -42,7 +42,7 @@ export default function Dashboard() {
 
   return (
     <div>
-      <PageHeader title="School Management System" subtitle="Amit Group of Schools — welcome back, Admin" />
+      <PageHeader title="School Management System" subtitle="Amit Group of Schools — welcome back, Mr. Sara" />
 
       {/* Top row — statistics cards */}
       <div className="kpi-grid">
@@ -66,11 +66,6 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Calendar */}
-      <div className="dashboard-calendar-wrap">
-        <MiniCalendar />
-      </div>
-
       {/* Middle row — Admission line chart + Attendance donut */}
       <div className="dash-grid-main-side">
         <AdmissionLineChart />
@@ -83,45 +78,45 @@ export default function Dashboard() {
         <ClassPieChart />
       </div>
 
-      {/* Bottom row — Recent admissions table + side widgets */}
-      <div className="dash-grid-main-side">
-        <div className="table-wrap">
-          <table className="table table-hover">
-            <thead>
-              <tr>
-                <th>Student Name</th><th>Class</th><th>Admission Date</th><th>Status</th>
+      {/* Bottom row — Recent admissions table */}
+      <div className="table-wrap" style={{ marginBottom: 24 }}>
+        <table className="table table-hover">
+          <thead>
+            <tr>
+              <th>Student Name</th><th>Class</th><th>Admission Date</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pageRows.map((s) => (
+              <tr key={s.id}>
+                <td>{s.name}</td>
+                <td>{s.class}</td>
+                <td>{s.admissionDate}</td>
+                <td><span className={`status-badge ${s.status === "Active" ? "active" : "pending"}`}>{s.status}</span></td>
               </tr>
-            </thead>
-            <tbody>
-              {pageRows.map((s) => (
-                <tr key={s.id}>
-                  <td>{s.name}</td>
-                  <td>{s.class}</td>
-                  <td>{s.admissionDate}</td>
-                  <td><span className={`status-badge ${s.status === "Active" ? "active" : "pending"}`}>{s.status}</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <SimplePagination page={page} totalPages={totalPages} onChange={setPage} />
-        </div>
+            ))}
+          </tbody>
+        </table>
+        <SimplePagination page={page} totalPages={totalPages} onChange={setPage} />
+      </div>
 
-        <div className="dash-side-stack">
-          <Widget
-            icon="bi bi-megaphone-fill"
-            title="Recent Notices"
-            items={notices}
-            renderItem={(n) => (
-              <>
-                <div>
-                  <div className="w-title">{n.title}</div>
-                  <div className="w-sub">{n.audience}</div>
-                </div>
-                <div className="w-date">{n.date}</div>
-              </>
-            )}
-          />
-        </div>
+      {/* Calendar + recent notices — one line */}
+      <div className="dash-grid-2 compact-widgets-row">
+        <MiniCalendar />
+        <Widget
+          icon="bi bi-megaphone-fill"
+          title="Recent Notices"
+          items={notices}
+          renderItem={(n) => (
+            <>
+              <div>
+                <div className="w-title">{n.title}</div>
+                <div className="w-sub">{n.audience}</div>
+              </div>
+              <div className="w-date">{n.date}</div>
+            </>
+          )}
+        />
       </div>
 
       <div className="dash-grid-2">

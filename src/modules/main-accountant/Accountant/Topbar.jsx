@@ -33,6 +33,11 @@ export default function Topbar({ onHamburger, isDark, onToggleDark, showToast })
         <i className="ti ti-menu-2"></i>
       </button>
 
+      <div className="search-wrap">
+        <i className="ti ti-search"></i>
+        <input type="search" placeholder="Search students, teachers, transactions…" />
+      </div>
+
       <div className="topbar-right">
         <div style={{ position: "relative" }} ref={notifRef}>
           <div className="icon-btn" title="Notifications" onClick={(e) => { e.stopPropagation(); setNotifOpen((o) => !o); }}>
@@ -84,13 +89,13 @@ export default function Topbar({ onHamburger, isDark, onToggleDark, showToast })
           <i className={`ti ${isDark ? "ti-sun" : "ti-moon"}`}></i>
         </div>
 
-        <div className="live-clock" style={{ margin: 0, padding: "8px 10px", fontSize: 13 }}>{time}</div>
+        <div className="live-clock" style={{ margin: 0, height: 36, display: "flex", alignItems: "center", padding: "0 12px", fontSize: 13 }}>{time}</div>
 
-        <div className="user-pill" title="Admin">
-          <div className="user-avatar">AD</div>
+        <div className="user-pill" title="Main Accountant">
+          <div className="user-avatar">MA</div>
           <div className="d-none d-md-block">
-            <div className="user-name">Admin</div>
-            <div className="user-role">Super Admin</div>
+            <div className="user-name">Mr. Sara</div>
+            <div className="user-role">Main Accountant</div>
           </div>
         </div>
 

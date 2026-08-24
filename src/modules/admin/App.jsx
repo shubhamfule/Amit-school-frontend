@@ -22,7 +22,7 @@ export default function App() {
       <ToastProvider>
           <Routes>
             {/* Standalone page — no sidebar / header */}
-            <Route path="/" element={<Navigate to="/admin/login" replace />} />
+            <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="login" element={<Login />} />
 
             <Route element={<Layout />}>

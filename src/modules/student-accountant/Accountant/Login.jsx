@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { login } from "../../../lib/auth";
 
 export default function Login() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("accounts@amitschools.edu");
+  const [email, setEmail] = useState("studentaccountant@amitschool.edu");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
   const [error, setError] = useState("");
@@ -13,6 +14,11 @@ export default function Login() {
     e.preventDefault();
     if (!email || !password) {
       setError("Please enter both your email and password.");
+      return;
+    }
+    const user = login(email, password);
+    if (!user) {
+      setError("Invalid email or password.");
       return;
     }
     setError("");

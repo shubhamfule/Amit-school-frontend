@@ -81,8 +81,8 @@ export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onClo
           <div className="brand-logo">
             <div className="brand-icon"><i className="bi bi-bank"></i></div>
             <div className="brand-text">
-              <div className="brand-text-name">SMS</div>
-              <div className="brand-text-sub">School Dashboard</div>
+              <div className="brand-text-name">Amit School</div>
+              <div className="brand-text-sub">Accountant Portal</div>
             </div>
           </div>
         </div>
@@ -112,7 +112,7 @@ export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onClo
         <div className="sidebar-footer">
           <div className="help-box">
             <i className="ti ti-help-circle"></i>
-            <p>Need help with SMS?</p>
+            <p>Need help with Amit School?</p>
             <button className="help-btn" onClick={() => alert("Opening help center…")}>Go to help center</button>
           </div>
           <NavLink to="/main-accountant" className="logout-btn">
