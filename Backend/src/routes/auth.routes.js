@@ -6,7 +6,6 @@
 
 const jwt = require("jsonwebtoken");
 const { Router } = require("express");
-const rateLimit = require("express-rate-limit");
 const { User, ROLES } = require("../module/Admin");
 const { protect } = require("../middleware/auth");
 const catchAsync = require("../utils/catchAsync");
@@ -14,17 +13,6 @@ const ApiError = require("../utils/ApiError");
 const { jwtSecret, jwtExpiresIn, cookieName, nodeEnv } = require("../config/env");
 
 const router = Router();
-
-// Throttles brute-force login/register attempts. Skipped in tests so the
-// test suite isn't rate-limited when it hits these routes repeatedly.
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 20,
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: () => nodeEnv === "test",
-  message: { success: false, message: "Too many attempts, please try again later" },
-});
 
 function signToken(user) {
   return jwt.sign({ sub: user._id.toString(), role: user.role }, jwtSecret, { expiresIn: jwtExpiresIn });
@@ -45,7 +33,6 @@ function toPublicUser(user) {
 
 router.post(
   "/register",
-  authLimiter,
   catchAsync(async (req, res) => {
     const { username, email, password, role, label, refId } = req.body;
     if (!username || !email || !password || !role) {
@@ -66,7 +53,6 @@ router.post(
 
 router.post(
   "/login",
-  authLimiter,
   catchAsync(async (req, res) => {
     const { identifier, password } = req.body;
     if (!identifier || !password) throw new ApiError(400, "identifier and password are required");

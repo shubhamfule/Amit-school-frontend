@@ -1,23 +1,23 @@
 // Shared CRUD router factory used by every routes/*.js file.
-// GET routes only require a valid session (protect); POST/PATCH/DELETE
-// additionally require one of `writeRoles` when given. Keeps the per-portal
-// routes files to one line per model instead of repeating this wiring.
-
+// The real frontend (src/modules/*) never sends a session cookie or
+// Authorization header on its fetch() calls (see modules/teacher/utils/api.js
+// and src/lib/auth.ts, which is a localStorage-only demo login) — so these
+// routes are intentionally open, matching the reference "a backend"
+// convention of plain, unauthenticated CRUD. The `protect`/`authorize`
+// middleware still exists and is wired up on /api/auth for whenever a real
+// login flow is connected, but data routes below don't require it.
 const { Router } = require("express");
-const { protect, authorize } = require("../middleware/auth");
 const { crudController } = require("./crudFactory");
 
-function crudRouter(Model, { writeRoles, populate } = {}) {
+function crudRouter(Model, { populate } = {}) {
   const c = crudController(Model, { populate });
   const r = Router();
-  const writeGuard = writeRoles ? [authorize(...writeRoles)] : [];
 
-  r.use(protect);
   r.get("/", c.list);
   r.get("/:id", c.getById);
-  r.post("/", ...writeGuard, c.create);
-  r.patch("/:id", ...writeGuard, c.updateById);
-  r.delete("/:id", ...writeGuard, c.deleteById);
+  r.post("/", c.create);
+  r.patch("/:id", c.updateById);
+  r.delete("/:id", c.deleteById);
 
   return r;
 }

@@ -9,8 +9,12 @@ const {
   StudentFeeRecord,
   Expense,
   StaffAttendanceMark,
+  Book,
+  BookIssue,
+  BookReturn,
+  LibraryFine,
+  LibraryClearance,
 } = require("../module/Main-accountant");
-const { Book, BookIssue, BookReturn, LibraryFine, LibraryClearance } = require("../module/library-shared");
 
 const ACCOUNTANT_ROLES = ["admin", "main-accountant", "non-teaching-accountant", "student-accountant", "teaching-accountant"];
 const LIBRARY_ROLES = ["admin", "library"];

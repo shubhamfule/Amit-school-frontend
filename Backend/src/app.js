@@ -12,7 +12,7 @@ const app = express();
 app.use(cors({ origin: clientOrigin, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
-if (nodeEnv === "development") app.use(morgan("dev"));
+if (nodeEnv !== "test") app.use(morgan("dev"));
 
 app.get("/health", (req, res) => res.json({ success: true, data: { status: "ok" } }));
 
