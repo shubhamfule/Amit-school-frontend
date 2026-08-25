@@ -1,6 +1,6 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Navigate } from "react-router-dom";
-import { getCurrentUser, type Role } from "../lib/auth";
+import { getCurrentUser, verifySession, type Role } from "../lib/auth";
 
 interface ProtectedRouteProps {
   role: Role;
@@ -8,7 +8,12 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ role, children }: ProtectedRouteProps) {
-  const user = getCurrentUser();
+  const [user, setUser] = useState(getCurrentUser());
+
+  useEffect(() => {
+    verifySession().then(setUser);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!user || user.role !== role) {
     return <Navigate to="/login" replace />;

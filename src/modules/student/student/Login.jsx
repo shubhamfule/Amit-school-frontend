@@ -13,13 +13,19 @@ export default function Login() {
     document.title = "Student Login – Amit Group of Schools";
   }, []);
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     if (!userId.trim() || !password.trim()) {
       setShowError(true);
       return;
     }
-    const user = login(userId.trim(), password.trim());
+    let user;
+    try {
+      user = await login(userId.trim(), password.trim());
+    } catch {
+      setShowError(true);
+      return;
+    }
     if (!user) {
       setShowError(true);
       return;

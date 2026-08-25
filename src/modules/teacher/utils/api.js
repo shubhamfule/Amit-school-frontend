@@ -17,7 +17,7 @@ async function throwForResponse(response, label) {
 }
 
 export async function apiGet(endpoint) {
-  const response = await fetch(`${BASE_URL}${endpoint}`);
+  const response = await fetch(`${BASE_URL}${endpoint}`, { credentials: "include" });
   if (!response.ok) await throwForResponse(response, `GET ${endpoint}`);
   return response.json();
 }
@@ -26,6 +26,7 @@ export async function apiPost(endpoint, body) {
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify(body),
   });
   if (!response.ok) await throwForResponse(response, `POST ${endpoint}`);
@@ -36,6 +37,7 @@ export async function apiPut(endpoint, body) {
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify(body),
   });
   if (!response.ok) await throwForResponse(response, `PUT ${endpoint}`);
@@ -46,6 +48,7 @@ export async function apiDelete(endpoint) {
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     method: "DELETE",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
   });
   if (!response.ok) await throwForResponse(response, `DELETE ${endpoint}`);
   return response.json();
@@ -55,6 +58,7 @@ export async function apiPatch(endpoint, body) {
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify(body),
   });
   if (!response.ok) await throwForResponse(response, `PATCH ${endpoint}`);

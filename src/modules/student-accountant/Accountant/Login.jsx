@@ -10,24 +10,27 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     if (!email || !password) {
       setError("Please enter both your email and password.");
       return;
     }
-    const user = login(email, password);
-    if (!user) {
-      setError("Invalid email or password.");
-      return;
-    }
     setError("");
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const user = await login(email, password);
+      if (!user) {
+        setError("Invalid email or password.");
+        return;
+      }
       sessionStorage.setItem("accountantAuthenticated", "true");
-      setLoading(false);
       navigate("/student-accountant", { replace: true });
-    }, 400);
+    } catch (err) {
+      setError(err.message || "Login failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (

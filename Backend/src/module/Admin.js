@@ -88,6 +88,21 @@ const studentSchema = new Schema(
     // separately via feeStatus above; teacher portal's StudentPortal.jsx:
     // enrollment status (Active/Inactive). All three value sets accepted.
     status: { type: String, enum: ["Active", "Inactive", "Pending", "Paid"], default: "Active" },
+    // StudentAdmission.jsx step 3 ("Document Upload") collects a folder of
+    // admission documents (photo, certificates, proofs) that previously had
+    // nowhere to go on this schema — stored as filenames/data URLs, keyed by
+    // document type, rather than one field per document.
+    folder: {
+      photo: { type: String, trim: true },
+      birthCert: { type: String, trim: true },
+      tc: { type: String, trim: true },
+      marksheet: { type: String, trim: true },
+      addressProof: { type: String, trim: true },
+      signature: { type: String, trim: true },
+      aadhaarDoc: { type: String, trim: true },
+      casteDoc: { type: String, trim: true },
+      domicileDoc: { type: String, trim: true },
+    },
   },
   { timestamps: true }
 );
