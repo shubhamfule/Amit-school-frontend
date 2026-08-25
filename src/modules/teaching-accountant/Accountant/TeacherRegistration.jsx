@@ -2,24 +2,103 @@ import { useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import WizardShell from "./WizardShell";
 import { TextField, TextAreaField, SelectField, RadioGroup, FileDrop } from "./Field";
+import { apiPost } from "../../teacher/utils/api";
 
 const empty = {
   fullName: "", father: "", mother: "", dob: "", gender: "", caste: "", category: "",religion: "",nationality: "",
-  maritalstatus: "",mobile: "",emergencycontact: "", email: "", aadhaar: "", pan: "", currentAddress: "", permanentAddress: "",
+  maritalStatus: "",mobile: "",emergencyContact: "", email: "", aadhaar: "", pan: "", currentAddress: "", permanentAddress: "",
   subject: "", classGrade: "", experience: "", prevSchool: "", designation: "", duration: "",
-  monthlysalary: "", joiningdate: "", profile: "",
+  monthlySalary: "", joiningDate: "", profile: "",
   ssc: "", hsc: "", grad: "", pg: "", bed: "", certifications: "", computerSkill: "", software: "",
   ctet: "", tet: "",
   photo: "", idProof: "", pan_doc: "", signature: "", resume: "", addressProof: "",
   sscDoc: "", hscDoc: "", degreeDoc: "", pgDoc: "", bedDoc: "", tetDoc: "", casteDoc: "", domicileDoc: "",
 };
 
+function generateStaffId() {
+  return `T${Date.now().toString().slice(-8)}`;
+}
+
+function toPayload(f) {
+  return {
+    staffId: generateStaffId(),
+    fullName: f.fullName,
+    father: f.father,
+    mother: f.mother,
+    dob: f.dob,
+    gender: f.gender,
+    caste: f.caste,
+    category: f.category,
+    religion: f.religion,
+    nationality: f.nationality,
+    maritalStatus: f.maritalStatus,
+    mobile: f.mobile,
+    emergencyContact: f.emergencyContact,
+    email: f.email,
+    aadhaar: f.aadhaar,
+    pan: f.pan,
+    currentAddress: f.currentAddress,
+    permanentAddress: f.permanentAddress,
+    subject: f.subject,
+    classGrade: f.classGrade,
+    experience: f.experience,
+    prevSchool: f.prevSchool,
+    designation: f.designation,
+    duration: f.duration,
+    monthlySalary: Number(f.monthlySalary) || 0,
+    joiningDate: f.joiningDate,
+    profile: f.profile,
+    qualifications: {
+      ssc: { board: f.sscBoard, year: f.sscYear, pct: f.sscPct, division: f.sscDiv },
+      hsc: { board: f.hscBoard, year: f.hscYear, pct: f.hscPct, division: f.hscDiv },
+      grad: { board: f.gradBoard, year: f.gradYear, pct: f.gradPct, division: f.gradDiv },
+      pg: { board: f.pgBoard, year: f.pgYear, pct: f.pgPct, division: f.pgDiv },
+      bed: { board: f.bedBoard, year: f.bedYear, pct: f.bedPct, division: f.bedDiv },
+    },
+    certifications: f.certifications,
+    computerSkill: f.computerSkill,
+    software: f.software,
+    ctet: f.ctet,
+    tet: f.tet,
+    documents: {
+      photo: f.photo,
+      idProof: f.idProof,
+      signature: f.signature,
+      panDoc: f.pan_doc,
+      resume: f.resume,
+      addressProof: f.addressProof,
+      sscDoc: f.sscDoc,
+      hscDoc: f.hscDoc,
+      degreeDoc: f.degreeDoc,
+      pgDoc: f.pgDoc,
+      bedDoc: f.bedDoc,
+      tetDoc: f.tetDoc,
+      casteDoc: f.casteDoc,
+      domicileDoc: f.domicileDoc,
+    },
+  };
+}
+
 export default function TeacherRegistration() {
   const { showToast } = useOutletContext();
   const [step, setStep] = useState(1);
   const [f, setF] = useState(empty);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const set = (k) => (v) => setF((s) => ({ ...s, [k]: v }));
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+      await apiPost("/staff-onboarding", toPayload(f));
+      setSubmitted(true);
+      showToast("Teacher application submitted", "ti-check");
+    } catch (err) {
+      showToast(err.message || "Failed to submit application", "ti-alert");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (submitted) {
     return (
@@ -66,14 +145,14 @@ export default function TeacherRegistration() {
           <div className="col-flex"><TextField label="Nationality" required value={f.nationality} onChange={set("nationality")} /></div>
         </div>
         <div className="row-flex">
-          <div className="col-flex"><SelectField label="Marital Status" required value={f.marital} onChange={set("marital")} options={["Single", "Married"]} /></div>
+          <div className="col-flex"><SelectField label="Marital Status" required value={f.maritalStatus} onChange={set("maritalStatus")} options={["Single", "Married"]} /></div>
           <div className="col-flex"><TextField label="Email ID" type="email" required value={f.email} onChange={set("email")} /></div>
         </div>
 
         <h3 className="section-title">Contact Details</h3><hr />
         <div className="row-flex">
           <div className="col-flex"><TextField label="Mobile Number" required value={f.mobile} onChange={set("mobile")} placeholder="10-digit mobile number" /></div>
-          <div className="col-flex"><TextField label="Emergency Contact" required type="emergencycontact" value={f.emergencycontact} onChange={set("emergencycontact")}  /></div>
+          <div className="col-flex"><TextField label="Emergency Contact" required value={f.emergencyContact} onChange={set("emergencyContact")} /></div>
         </div>
 
         <h3 className="section-title">Identity Details</h3><hr />
@@ -119,8 +198,8 @@ export default function TeacherRegistration() {
 
         <h3 className="section-title">Salary &amp; Availability</h3><hr />
         <div className="row-flex">
-          <div className="col-flex"><TextField label="Monthly Salary (₹)" required value={f.monthlysalary} onChange={set("monthlysalary")} placeholder="e.g. 30000" /></div>
-          <div className="col-flex"><TextField label="Joining Date" type="date" value={f.joiningdate} onChange={set("joiningdate")} /></div>
+          <div className="col-flex"><TextField label="Monthly Salary (₹)" required value={f.monthlySalary} onChange={set("monthlySalary")} placeholder="e.g. 30000" /></div>
+          <div className="col-flex"><TextField label="Joining Date" required type="date" value={f.joiningDate} onChange={set("joiningDate")} /></div>
         </div>
 
         <h3 className="section-title">Additional Information</h3><hr />
@@ -195,8 +274,9 @@ export default function TeacherRegistration() {
       currentStep={4}
       instructions="Documents marked Required must be uploaded to proceed. Max 500 KB per document. Accepted formats: JPG, PNG, PDF."
       onBack={() => setStep(3)}
-      onNext={() => { setSubmitted(true); showToast("Teacher application submitted", "ti-check"); }}
-      nextLabel="Submit Application"
+      onNext={handleSubmit}
+      nextLabel={submitting ? "Submitting…" : "Submit Application"}
+      nextDisabled={submitting}
     >
       <h3 className="section-title">Identity &amp; Photo Documents</h3><hr />
       <div className="row-flex">

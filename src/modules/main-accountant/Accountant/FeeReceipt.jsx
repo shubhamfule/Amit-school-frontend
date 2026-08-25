@@ -8,7 +8,7 @@ const items = [
 
 const inr = (n) => `₹${n.toLocaleString("en-IN")}.00`;
 
-export default function FeeReceipt({ studentName, onBack, onPaid }) {
+export default function FeeReceipt({ studentName, onBack, onPaid, paying = false }) {
   const [method, setMethod] = useState("Online Payment");
   const [agree, setAgree] = useState(false);
   const [paid, setPaid] = useState(false);
@@ -87,10 +87,13 @@ export default function FeeReceipt({ studentName, onBack, onPaid }) {
           <button className="btn btn-secondary" onClick={onBack}>Back to Documents</button>
           <button
             className="btn btn-primary"
-            disabled={!agree}
-            onClick={() => { setPaid(true); onPaid && onPaid(); }}
+            disabled={!agree || paying}
+            onClick={async () => {
+              const ok = onPaid ? await onPaid() : true;
+              if (ok) setPaid(true);
+            }}
           >
-            {method === "Cash" ? "Confirm Cash Receipt" : "Proceed to Secure Payment"}
+            {paying ? "Processing…" : method === "Cash" ? "Confirm Cash Receipt" : "Proceed to Secure Payment"}
           </button>
         </div>
       </div>

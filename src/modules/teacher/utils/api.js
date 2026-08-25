@@ -5,11 +5,20 @@
 
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
+async function throwForResponse(response, label) {
+  let message = `${label} failed: ${response.status} ${response.statusText}`;
+  try {
+    const data = await response.json();
+    if (data?.message) message = data.message;
+  } catch {
+    // response body wasn't JSON — fall back to the status text above
+  }
+  throw new Error(message);
+}
+
 export async function apiGet(endpoint) {
   const response = await fetch(`${BASE_URL}${endpoint}`);
-  if (!response.ok) {
-    throw new Error(`GET ${endpoint} failed: ${response.status} ${response.statusText}`);
-  }
+  if (!response.ok) await throwForResponse(response, `GET ${endpoint}`);
   return response.json();
 }
 
@@ -19,9 +28,7 @@ export async function apiPost(endpoint, body) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (!response.ok) {
-    throw new Error(`POST ${endpoint} failed: ${response.status} ${response.statusText}`);
-  }
+  if (!response.ok) await throwForResponse(response, `POST ${endpoint}`);
   return response.json();
 }
 
@@ -31,9 +38,7 @@ export async function apiPut(endpoint, body) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (!response.ok) {
-    throw new Error(`PUT ${endpoint} failed: ${response.status} ${response.statusText}`);
-  }
+  if (!response.ok) await throwForResponse(response, `PUT ${endpoint}`);
   return response.json();
 }
 
@@ -42,9 +47,7 @@ export async function apiDelete(endpoint) {
     method: "DELETE",
     headers: { "Content-Type": "application/json" },
   });
-  if (!response.ok) {
-    throw new Error(`DELETE ${endpoint} failed: ${response.status} ${response.statusText}`);
-  }
+  if (!response.ok) await throwForResponse(response, `DELETE ${endpoint}`);
   return response.json();
 }
 
@@ -54,8 +57,6 @@ export async function apiPatch(endpoint, body) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (!response.ok) {
-    throw new Error(`PATCH ${endpoint} failed: ${response.status} ${response.statusText}`);
-  }
+  if (!response.ok) await throwForResponse(response, `PATCH ${endpoint}`);
   return response.json();
 }

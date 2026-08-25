@@ -3,6 +3,7 @@ import { useOutletContext } from "react-router-dom";
 import WizardShell from "./WizardShell";
 import { TextField, TextAreaField, SelectField, RadioGroup, FileDrop } from "./Field";
 import FeeReceipt from "./FeeReceipt";
+import { apiPost } from "../../teacher/utils/api";
 
 const empty = {
   firstName: "", lastName: "", session: "2026-2027", prevSchool: "", prevClass: "", aadhaar: "",
@@ -13,18 +14,51 @@ const empty = {
   photo: "", birthCert: "", tc: "", marksheet: "", addressProof: "", signature: "", aadhaarDoc: "", casteDoc: "", domicileDoc: "",
 };
 
+// Only the fields that exist on the backend Student schema (Backend/src/module/Admin.js)
+// are sent — the wizard collects a fuller admission profile (aadhaar, religion,
+// documents, etc.) than that schema stores.
+function toStudentPayload(f) {
+  return {
+    name: `${f.firstName} ${f.lastName}`.trim(),
+    class: f.enteringClass,
+    dob: f.dob || undefined,
+    gender: f.gender || undefined,
+    father: f.father,
+    mother: f.mother,
+    contact: f.mobile,
+    address: f.currentAddress,
+    academicYear: f.session,
+  };
+}
+
 export default function StudentAdmission() {
   const { showToast } = useOutletContext();
   const [step, setStep] = useState(1);
   const [f, setF] = useState(empty);
+  const [submitting, setSubmitting] = useState(false);
   const set = (k) => (v) => setF((s) => ({ ...s, [k]: v }));
+
+  const handlePaid = async () => {
+    setSubmitting(true);
+    try {
+      await apiPost("/students", toStudentPayload(f));
+      showToast("Admission fee payment recorded", "ti-check");
+      return true;
+    } catch (err) {
+      showToast(err.message || "Failed to save student", "ti-alert");
+      return false;
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (step === 4) {
     return (
       <FeeReceipt
         studentName={`${f.firstName} ${f.lastName}`.trim() || "New Student"}
         onBack={() => setStep(3)}
-        onPaid={() => showToast("Admission fee payment recorded", "ti-check")}
+        onPaid={handlePaid}
+        paying={submitting}
       />
     );
   }
