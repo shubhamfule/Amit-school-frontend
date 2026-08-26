@@ -1,21 +1,14 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import PageHeader from '../components/PageHeader';
 import StatCard from '../components/StatCard';
 import { useToast } from '../context/ToastContext';
 import { exportToExcel, printClearanceReceipt } from '../utils/exportHelpers';
+import { apiGet, apiPost } from '../utils/api';
 
 const AVATAR_COLORS = [
   { bg: 'var(--purple-light)', fg: 'var(--purple)' }, { bg: 'var(--blue-light)', fg: 'var(--blue)' },
   { bg: 'var(--pink-light)', fg: 'var(--pink)' }, { bg: 'var(--amber-light)', fg: 'var(--amber)' },
   { bg: 'var(--teal-light)', fg: 'var(--teal)' },
-];
-
-const INITIAL_RECORDS = [
-  { id: 'CLR-001', name: 'Amit Sharma', type: 'Student', bookId: 'BK-3001', bookName: 'Science Book', overdueFine: 20, damageFine: 30, status: 'Cleared' },
-  { id: 'CLR-002', name: "Neha Ma'am", type: 'Teacher', bookId: 'BK-3002', bookName: 'English Grammar', overdueFine: 50, damageFine: 50, status: 'Pending' },
-  { id: 'CLR-003', name: 'Rahul Patil', type: 'Student', bookId: 'BK-3003', bookName: 'Mathematics', overdueFine: 25, damageFine: 0, status: 'Cleared' },
-  { id: 'CLR-004', name: 'Raj Sir', type: 'Teacher', bookId: 'BK-3004', bookName: 'Physics Guide', overdueFine: 40, damageFine: 10, status: 'Pending' },
-  { id: 'CLR-005', name: 'Sneha Gupta', type: 'Student', bookId: 'BK-3005', bookName: 'Geography Atlas', overdueFine: 0, damageFine: 20, status: 'Cleared' },
 ];
 
 const EMPTY_FORM = {
@@ -25,11 +18,27 @@ const EMPTY_FORM = {
 
 export default function FinesFees() {
   const showToast = useToast();
-  const [records, setRecords] = useState(INITIAL_RECORDS);
+  const [records, setRecords] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(EMPTY_FORM);
   const [search, setSearch] = useState('');
   const [userTypeFilter, setUserTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    apiGet('/library-clearances')
+      .then((res) => {
+        if (cancelled) return;
+        setRecords((res.data ?? []).map((r) => ({
+          id: r.clearanceId || r._id, name: r.name, type: r.userType, bookId: r.bookId || '—', bookName: r.bookName || '—',
+          overdueFine: r.overdueFine ?? 0, damageFine: r.damageFine ?? 0, status: r.status,
+        })));
+      })
+      .catch(() => { if (!cancelled) showToast('Could not load clearance records', 'ti-alert-circle'); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
 
   const totalFine = (Number(form.overdueFine) || 0) + (Number(form.damageFine) || 0);
 
@@ -48,15 +57,23 @@ export default function FinesFees() {
     outstanding: records.filter((r) => r.status === 'Pending').reduce((s, r) => s + r.overdueFine + r.damageFine, 0),
   };
 
-  const submitClearance = () => {
+  const submitClearance = async () => {
     if (!form.name || !form.userType) { showToast('Please fill in required fields', 'ti-alert-circle'); return; }
     const newId = form.id || 'CLR-' + String(records.length + 1).padStart(3, '0');
-    setRecords((prev) => [...prev, {
-      id: newId, name: form.name, type: form.userType, bookId: form.bookId || '—', bookName: form.bookName || '—',
-      overdueFine: Number(form.overdueFine) || 0, damageFine: Number(form.damageFine) || 0, status: form.status,
-    }]);
-    setForm(EMPTY_FORM);
-    showToast('Clearance record submitted!', 'ti-circle-check');
+    try {
+      const res = await apiPost('/library-clearances', {
+        clearanceId: newId, name: form.name, userType: form.userType, bookId: form.bookId || '—', bookName: form.bookName || '—',
+        overdueFine: Number(form.overdueFine) || 0, damageFine: Number(form.damageFine) || 0, status: form.status,
+      });
+      setRecords((prev) => [...prev, {
+        id: res.data.clearanceId || res.data._id, name: res.data.name, type: res.data.userType, bookId: res.data.bookId || '—', bookName: res.data.bookName || '—',
+        overdueFine: res.data.overdueFine ?? 0, damageFine: res.data.damageFine ?? 0, status: res.data.status,
+      }]);
+      setForm(EMPTY_FORM);
+      showToast('Clearance record submitted!', 'ti-circle-check');
+    } catch (err) {
+      showToast(err.message || 'Could not submit clearance record', 'ti-alert-circle');
+    }
   };
 
   const downloadClearanceReceipt = () => {
@@ -183,7 +200,8 @@ export default function FinesFees() {
               })}
             </tbody>
           </table>
-          {filtered.length === 0 && <p className="text-center py-3 mb-0" style={{ color: 'var(--text-muted)', fontSize: 13 }}>No clearance records match your search/filter.</p>}
+          {loading && <p className="text-center py-3 mb-0" style={{ color: 'var(--text-muted)', fontSize: 13 }}>Loading…</p>}
+          {!loading && filtered.length === 0 && <p className="text-center py-3 mb-0" style={{ color: 'var(--text-muted)', fontSize: 13 }}>No clearance records match your search/filter.</p>}
         </div>
       </div>
 

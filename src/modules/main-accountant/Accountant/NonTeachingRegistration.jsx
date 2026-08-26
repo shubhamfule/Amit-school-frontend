@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import WizardShell from "./WizardShell";
 import { TextField, TextAreaField, SelectField, RadioGroup, FileDrop } from "./Field";
+import { apiPost } from "../../teacher/utils/api";
 
 const empty = {
   fullName: "", father: "", mother: "", dob: "", gender: "", caste: "", category: "", marital: "", email: "",
@@ -17,6 +18,47 @@ export default function NonTeachingRegistration() {
   const [f, setF] = useState(empty);
   const [submitted, setSubmitted] = useState(false);
   const set = (k) => (v) => setF((s) => ({ ...s, [k]: v }));
+
+  const submitApplication = async () => {
+    try {
+      await apiPost("/non-teaching-onboarding", {
+        staffId: `APP-NT-${Date.now()}`,
+        fullName: f.fullName,
+        father: f.father,
+        mother: f.mother,
+        dob: f.dob,
+        gender: f.gender,
+        caste: f.caste,
+        category: f.category,
+        maritalStatus: f.marital,
+        email: f.email,
+        mobile: f.mobile,
+        emergencyContact: f.emergency,
+        aadhaar: f.aadhaar,
+        pan: f.pan,
+        currentAddress: f.currentAddress,
+        permanentAddress: f.permanentAddress,
+        empType: f.empType,
+        department: f.department,
+        workExp: f.workExp,
+        shift: f.shift,
+        prevOrg: f.prevOrg,
+        salaryExpect: f.salaryExpect,
+        availableToJoin: f.availableToJoin || undefined,
+        profile: f.profile,
+        qualification: f.qualification,
+        skills: f.skills,
+        documents: {
+          photo: f.photo, signature: f.signature, aadhaarDoc: f.aadhaarDoc, eduDoc: f.eduDoc,
+          license: f.license, expCert: f.expCert, casteDoc: f.casteDoc, domicileDoc: f.domicileDoc,
+        },
+      });
+      setSubmitted(true);
+      showToast("Non-teaching application submitted", "ti-check");
+    } catch (err) {
+      showToast(err.message || "Could not submit application", "ti-alert-triangle");
+    }
+  };
 
   if (submitted) {
     return (
@@ -128,7 +170,7 @@ export default function NonTeachingRegistration() {
       currentStep={3}
       instructions="Documents marked Required must be uploaded to proceed. Max 500 KB per document."
       onBack={() => setStep(2)}
-      onNext={() => { setSubmitted(true); showToast("Non-teaching application submitted", "ti-check"); }}
+      onNext={submitApplication}
       nextLabel="Submit Application"
     >
       <h3 className="section-title">Educational Detail</h3><hr />

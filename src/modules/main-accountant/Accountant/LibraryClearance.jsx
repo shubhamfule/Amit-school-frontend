@@ -1,9 +1,39 @@
+import { useEffect, useState } from "react";
 import LibraryShell, { LibAvatar } from "./LibraryShell";
-import { clearanceRecords } from "./libraryData";
+import { avatarPalette, initials } from "./libraryData";
+import { apiGet } from "../../teacher/utils/api";
 
 const inr = (n) => `₹${Number(n).toLocaleString("en-IN")}`;
 
 export default function LibraryClearance() {
+  const [clearanceRecords, setClearanceRecords] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiGet("/library-clearances")
+      .then((res) => {
+        if (cancelled) return;
+        setClearanceRecords(
+          (res.data ?? []).map((r, i) => ({
+            id: r.clearanceId || r._id,
+            name: r.name,
+            initials: initials(r.name),
+            avatar: avatarPalette[i % avatarPalette.length],
+            userType: r.userType,
+            bookId: r.bookId || "—",
+            bookName: r.bookName || "—",
+            overdueFine: r.overdueFine ?? 0,
+            damageFine: r.damageFine ?? 0,
+            status: r.status,
+          }))
+        );
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <LibraryShell icon="bi bi-journal-check" title="Clearance records" count={clearanceRecords.length}>
       <div className="lib-table-wrap">

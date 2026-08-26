@@ -1,41 +1,62 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import PageHeader from '../components/PageHeader';
 import Modal from '../components/Modal';
 import { useToast } from '../context/ToastContext';
+import { apiGet, apiPost, apiDelete } from '../utils/api';
 
 const PRIORITY_CLASS = { high: 'badge-unpaid', medium: 'badge-pending', low: 'badge-paid' };
 
-const INITIAL_NOTICES = [
-  { id: 1, title: 'Term-end exam schedule released', date: '10 Aug 2026', priority: 'high', audience: 'All Students', body: 'The term-end examination timetable has been published. Students should check their class notice boards for exact dates and hall allotments.' },
-  { id: 2, title: 'PTM rescheduled to next Saturday', date: '08 Aug 2026', priority: 'medium', audience: 'Parents', body: 'The Parent-Teacher Meeting originally planned for this week has been moved to next Saturday due to the sports day preparations.' },
-  { id: 3, title: 'Library books due for return', date: '06 Aug 2026', priority: 'low', audience: 'All Students', body: 'Students holding library books issued before July are requested to return them before the new academic material arrives.' },
-  { id: 4, title: 'Staff meeting — new attendance policy', date: '04 Aug 2026', priority: 'medium', audience: 'Staff', body: 'A mandatory staff meeting will be held to walk through the updated attendance and leave policy for the coming term.' },
-];
+function formatDate(value) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
 
 export default function Notices() {
   const showToast = useToast();
-  const [notices, setNotices] = useState(INITIAL_NOTICES);
+  const [notices, setNotices] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [showAdd, setShowAdd] = useState(false);
   const [viewing, setViewing] = useState(null);
   const [form, setForm] = useState({ title: '', date: '', audience: 'All Students', priority: 'medium', body: '' });
+
+  useEffect(() => {
+    let cancelled = false;
+    apiGet('/notices')
+      .then((res) => { if (!cancelled) setNotices(res.data ?? []); })
+      .catch(() => { if (!cancelled) showToast('Could not load notices', 'ti-alert-circle'); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
 
   const filtered = useMemo(
     () => (filter === 'all' ? notices : notices.filter((n) => n.priority === filter)),
     [notices, filter]
   );
 
-  function saveNotice() {
+  async function saveNotice() {
     if (!form.title.trim() || !form.date) { showToast('Please fill in title and date', 'ti-alert-circle'); return; }
-    setNotices((list) => [{ id: Date.now(), ...form, body: form.body || 'Details to be announced.' }, ...list]);
-    setShowAdd(false);
-    setForm({ title: '', date: '', audience: 'All Students', priority: 'medium', body: '' });
-    showToast('Notice published!', 'ti-speakerphone');
+    try {
+      const res = await apiPost('/notices', { ...form, body: form.body || 'Details to be announced.' });
+      setNotices((list) => [res.data, ...list]);
+      setShowAdd(false);
+      setForm({ title: '', date: '', audience: 'All Students', priority: 'medium', body: '' });
+      showToast('Notice published!', 'ti-speakerphone');
+    } catch (err) {
+      showToast(err.message || 'Could not publish notice', 'ti-alert-circle');
+    }
   }
 
-  function removeNotice(id) {
-    setNotices((list) => list.filter((n) => n.id !== id));
-    showToast('Notice removed', 'ti-trash');
+  async function removeNotice(id) {
+    try {
+      await apiDelete(`/notices/${id}`);
+      setNotices((list) => list.filter((n) => n._id !== id));
+      showToast('Notice removed', 'ti-trash');
+    } catch {
+      showToast('Could not remove notice', 'ti-alert-circle');
+    }
   }
 
   return (
@@ -68,7 +89,9 @@ export default function Notices() {
           <span className="badge-pill badge-pending">{filtered.length} notices</span>
         </div>
         <div className="lib-table-wrap">
-          {filtered.length === 0 ? (
+          {loading ? (
+            <p className="text-center py-3 mb-0" style={{ color: 'var(--text-muted)', fontSize: 13 }}>Loading notices…</p>
+          ) : filtered.length === 0 ? (
             <p className="text-center py-3 mb-0" style={{ color: 'var(--text-muted)', fontSize: 13 }}>No notices found.</p>
           ) : (
             <table className="ec-table">
@@ -83,15 +106,15 @@ export default function Notices() {
               </thead>
               <tbody>
                 {filtered.map((n) => (
-                  <tr key={n.id}>
+                  <tr key={n._id}>
                     <td onClick={() => setViewing(n)} style={{ cursor: 'pointer', fontWeight: 500, color: 'var(--purple)' }}>{n.title}</td>
                     <td>{n.audience}</td>
-                    <td>{n.date}</td>
+                    <td>{formatDate(n.date)}</td>
                     <td><span className={`badge-pill ${PRIORITY_CLASS[n.priority]}`} style={{ textTransform: 'capitalize' }}>{n.priority}</span></td>
                     <td>
                       <div className="table-actions">
                         <div className="tbl-icon-btn" title="View" onClick={() => setViewing(n)}><i className="ti ti-eye"></i></div>
-                        <div className="tbl-icon-btn danger" title="Remove" onClick={() => removeNotice(n.id)}><i className="ti ti-trash"></i></div>
+                        <div className="tbl-icon-btn danger" title="Remove" onClick={() => removeNotice(n._id)}><i className="ti ti-trash"></i></div>
                       </div>
                     </td>
                   </tr>
@@ -148,7 +171,7 @@ export default function Notices() {
           <div>
             <div className="d-flex justify-content-between align-items-center mb-3">
               <span className={`badge-pill ${PRIORITY_CLASS[viewing.priority]}`} style={{ textTransform: 'capitalize' }}>{viewing.priority} priority</span>
-              <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{viewing.date}</span>
+              <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{formatDate(viewing.date)}</span>
             </div>
             <p style={{ color: 'var(--text-secondary)', fontSize: 13.5 }} className="mb-3">{viewing.body}</p>
             <div className="form-label">Audience: {viewing.audience}</div>

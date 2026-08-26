@@ -1,14 +1,20 @@
 const app = require("../src/app");
 const { connect, closeDatabase, clearDatabase } = require("./helpers/db");
+const { loginAs } = require("./helpers/auth");
 const testCrud = require("./helpers/testCrud");
 
+let cookie;
 beforeAll(connect);
+beforeEach(async () => {
+  cookie = await loginAs(app, "admin");
+});
 afterEach(clearDatabase);
 afterAll(closeDatabase);
 
 describe("/api/staff-onboarding", () => {
   testCrud(() => app, {
     basePath: "/api/staff-onboarding",
+    getCookie: () => cookie,
     validPayload: {
       staffId: "T101",
       fullName: "Kiran Shah",

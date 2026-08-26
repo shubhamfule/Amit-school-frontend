@@ -1,23 +1,48 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import PageHeader from "./PageHeader";
-import { notices as seedNotices } from "./directoryData";
+import { apiGet, apiPost } from "../../teacher/utils/api";
+
+function formatDate(value) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toISOString().slice(0, 10);
+}
 
 export default function Notices() {
   const { showToast } = useOutletContext();
-  const [list, setList] = useState(seedNotices);
+  const [list, setList] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState({ title: "", audience: "All Classes" });
 
-  const addNotice = () => {
+  useEffect(() => {
+    let cancelled = false;
+    apiGet("/notices")
+      .then((res) => {
+        if (cancelled) return;
+        setList((res.data ?? []).map((n) => ({ id: n._id, title: n.title, audience: n.audience, date: formatDate(n.date) })));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const addNotice = async () => {
     if (!form.title.trim()) {
       showToast("Please enter a notice title", "ti-alert-triangle");
       return;
     }
-    setList((l) => [{ id: Date.now(), title: form.title, audience: form.audience, date: new Date().toISOString().slice(0, 10) }, ...l]);
-    setForm({ title: "", audience: "All Classes" });
-    setModalOpen(false);
-    showToast("Notice published", "ti-check");
+    try {
+      const res = await apiPost("/notices", { title: form.title, audience: form.audience });
+      setList((l) => [{ id: res.data._id, title: res.data.title, audience: res.data.audience, date: formatDate(res.data.date) }, ...l]);
+      setForm({ title: "", audience: "All Classes" });
+      setModalOpen(false);
+      showToast("Notice published", "ti-check");
+    } catch (err) {
+      showToast(err.message || "Could not publish notice", "ti-alert-triangle");
+    }
   };
 
   return (

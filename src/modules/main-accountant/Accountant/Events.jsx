@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import PageHeader from "./PageHeader";
-import { schoolEvents as seedEvents, eventThemes, eventStatuses } from "./eventsData";
+import { eventThemes, eventStatuses } from "./eventsData";
+import { apiGet, apiPost } from "../../teacher/utils/api";
 
 const tabs = ["All", "Upcoming", "Scheduled", "Planning"];
 
@@ -12,10 +13,37 @@ function formatDateLabel(iso) {
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
+function themeForIcon(icon) {
+  return eventThemes.find((t) => t.emoji === icon) || eventThemes[0];
+}
+
 export default function Events() {
   const { showToast } = useOutletContext();
-  const [events, setEvents] = useState(seedEvents);
+  const [events, setEvents] = useState([]);
   const [tab, setTab] = useState("All");
+
+  useEffect(() => {
+    let cancelled = false;
+    apiGet("/events")
+      .then((res) => {
+        if (cancelled) return;
+        setEvents(
+          (res.data ?? []).map((e) => ({
+            id: e._id,
+            title: e.title,
+            date: e.date ? new Date(e.date).toISOString().slice(0, 10) : "",
+            dateLabel: formatDateLabel(e.date ? new Date(e.date).toISOString().slice(0, 10) : ""),
+            status: e.status,
+            location: e.venue,
+            theme: themeForIcon(e.icon),
+          }))
+        );
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState({
     title: "",
@@ -33,27 +61,38 @@ export default function Events() {
   const resetForm = () =>
     setForm({ title: "", date: "", location: "", status: "Planning", themeKey: eventThemes[0].key });
 
-  const addEvent = () => {
+  const addEvent = async () => {
     if (!form.title.trim() || !form.date || !form.location.trim()) {
       showToast("Please fill in title, date and location", "ti-alert-triangle");
       return;
     }
     const theme = eventThemes.find((t) => t.key === form.themeKey) || eventThemes[0];
-    setEvents((list) => [
-      {
-        id: `EV-${Date.now()}`,
+    try {
+      const res = await apiPost("/events", {
         title: form.title.trim(),
         date: form.date,
-        dateLabel: formatDateLabel(form.date),
+        venue: form.location.trim(),
         status: form.status,
-        location: form.location.trim(),
-        theme,
-      },
-      ...list,
-    ]);
-    resetForm();
-    setModalOpen(false);
-    showToast("Event created", "ti-check");
+        icon: theme.emoji,
+      });
+      setEvents((list) => [
+        {
+          id: res.data._id,
+          title: res.data.title,
+          date: form.date,
+          dateLabel: formatDateLabel(form.date),
+          status: res.data.status,
+          location: res.data.venue,
+          theme: themeForIcon(res.data.icon),
+        },
+        ...list,
+      ]);
+      resetForm();
+      setModalOpen(false);
+      showToast("Event created", "ti-check");
+    } catch (err) {
+      showToast(err.message || "Could not create event", "ti-alert-triangle");
+    }
   };
 
   return (

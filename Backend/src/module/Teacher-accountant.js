@@ -50,11 +50,16 @@ const staffOnboardingSchema = new Schema(
     gender: { type: String, enum: ["Male", "Female", "Other"], required: true },
     caste: { type: String, required: true },
     category: { type: String, enum: ["General", "OBC", "SC", "ST", "EWS"], required: true },
-    religion: { type: String, required: true },
-    nationality: { type: String, required: true },
-    maritalStatus: { type: String, enum: ["Single", "Married"], required: true },
+    // religion/nationality/maritalStatus/emergencyContact and monthlySalary/
+    // joiningDate below are not required — main-accountant's own
+    // TeacherRegistration.jsx (a prospective applicant's form) never
+    // collects the former at all, and sends salaryExpect/availableToJoin
+    // instead of the latter two.
+    religion: { type: String },
+    nationality: { type: String },
+    maritalStatus: { type: String, enum: ["Single", "Married"] },
     mobile: { type: String, required: true },
-    emergencyContact: { type: String, required: true },
+    emergencyContact: { type: String },
     email: { type: String, required: true },
     aadhaar: { type: String, required: true },
     pan: { type: String, required: true },
@@ -68,8 +73,10 @@ const staffOnboardingSchema = new Schema(
     designation: { type: String }, // at previous institution
     duration: { type: String }, // at previous institution
 
-    monthlySalary: { type: Number, required: true, min: 0 }, // NOTE: real figure, not an "expected" one
-    joiningDate: { type: Date, required: true },
+    monthlySalary: { type: Number, min: 0 }, // real figure, once actually hired
+    joiningDate: { type: Date },
+    salaryExpect: { type: String }, // main-accountant's applicant-intake naming for an expected salary
+    availableToJoin: { type: Date }, // main-accountant's applicant-intake naming for joiningDate
     profile: { type: String }, // free-text "about yourself"
 
     // Educational Qualification table — one row per exam type.

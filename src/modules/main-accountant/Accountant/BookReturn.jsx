@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import LibraryShell, { LibAvatar } from "./LibraryShell";
-import { bookReturns } from "./libraryData";
+import { avatarPalette, initials } from "./libraryData";
+import { apiGet } from "../../teacher/utils/api";
 
 const inr = (n) => `₹${Number(n).toLocaleString("en-IN")}`;
 
@@ -10,6 +12,34 @@ function conditionClass(cond) {
 }
 
 export default function BookReturn() {
+  const [bookReturns, setBookReturns] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiGet("/book-returns")
+      .then((res) => {
+        if (cancelled) return;
+        setBookReturns(
+          (res.data ?? []).map((r, i) => ({
+            id: r.memberId || r._id,
+            name: r.name,
+            initials: initials(r.name),
+            avatar: avatarPalette[i % avatarPalette.length],
+            userType: r.userType,
+            bookId: r.bookId,
+            bookName: r.bookName,
+            returnDate: r.returnDate,
+            condition: r.condition || "Good",
+            fine: r.fine ?? 0,
+          }))
+        );
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <LibraryShell icon="bi bi-journal-check" title="Book return records" count={bookReturns.length}>
       <div className="lib-table-wrap">

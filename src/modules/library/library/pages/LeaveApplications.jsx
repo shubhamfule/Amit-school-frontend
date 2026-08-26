@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import PageHeader from '../components/PageHeader';
 import Modal from '../components/Modal';
 import { useToast } from '../context/ToastContext';
 import { exportToExcel, exportToPDF } from '../utils/exportHelpers';
+import { apiGet, apiPost, apiPatch, apiDelete } from '../utils/api';
 
 const STATUS_OPTIONS = ['Approved', 'Pending', 'Rejected'];
 const badgeClass = { Approved: 'badge-available', Pending: 'badge-pending2', Rejected: 'badge-overdue' };
@@ -16,14 +17,37 @@ function withDays(row) {
   return { ...row, days };
 }
 
+function toDateInput(value) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toISOString().slice(0, 10);
+}
+
 export default function LeaveApplications() {
   const showToast = useToast();
   const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [showApply, setShowApply] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(EMPTY_LEAVE);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiGet('/leave')
+      .then((res) => {
+        if (cancelled) return;
+        const libraryRows = (res.data ?? [])
+          .filter((r) => r.studentName)
+          .map((r) => withDays({ id: r._id, studentName: r.studentName, startDate: toDateInput(r.startDate), endDate: toDateInput(r.endDate), reason: r.reason, status: r.status }));
+        setRows(libraryRows);
+      })
+      .catch(() => { if (!cancelled) showToast('Could not load leave applications', 'ti-alert-circle'); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
 
   const filtered = useMemo(() => rows.filter((r) => {
     const q = search.trim().toLowerCase();
@@ -44,26 +68,37 @@ export default function LeaveApplications() {
     setShowApply(true);
   }
 
-  function saveLeave() {
+  async function saveLeave() {
     if (!form.studentName.trim() || !form.startDate || !form.endDate) {
       showToast('Please fill in required fields', 'ti-alert-circle');
       return;
     }
-    if (editingId) {
-      setRows((list) => list.map((r) => (r.id === editingId ? withDays({ ...r, ...form }) : r)));
-      showToast('Leave application updated', 'ti-check');
-    } else {
-      setRows((list) => [withDays({ id: Date.now(), ...form }), ...list]);
-      showToast('Leave application submitted!', 'ti-calendar-plus');
+    try {
+      if (editingId) {
+        await apiPatch(`/leave/${editingId}`, form);
+        setRows((list) => list.map((r) => (r.id === editingId ? withDays({ ...r, ...form }) : r)));
+        showToast('Leave application updated', 'ti-check');
+      } else {
+        const res = await apiPost('/leave', form);
+        setRows((list) => [withDays({ id: res.data._id, ...form }), ...list]);
+        showToast('Leave application submitted!', 'ti-calendar-plus');
+      }
+      setShowApply(false);
+      setForm(EMPTY_LEAVE);
+      setEditingId(null);
+    } catch (err) {
+      showToast(err.message || 'Could not save leave application', 'ti-alert-circle');
     }
-    setShowApply(false);
-    setForm(EMPTY_LEAVE);
-    setEditingId(null);
   }
 
-  function removeLeave(id) {
-    setRows((list) => list.filter((r) => r.id !== id));
-    showToast('Leave application removed', 'ti-trash');
+  async function removeLeave(id) {
+    try {
+      await apiDelete(`/leave/${id}`);
+      setRows((list) => list.filter((r) => r.id !== id));
+      showToast('Leave application removed', 'ti-trash');
+    } catch {
+      showToast('Could not remove leave application', 'ti-alert-circle');
+    }
   }
 
   const columns = [
@@ -130,7 +165,8 @@ export default function LeaveApplications() {
               ))}
             </tbody>
           </table>
-          {filtered.length === 0 && (
+          {loading && <p className="text-center py-4 mb-0" style={{ color: 'var(--text-muted)', fontSize: 13 }}>Loading…</p>}
+          {!loading && filtered.length === 0 && (
             <p className="text-center py-4 mb-0" style={{ color: 'var(--text-muted)', fontSize: 13 }}>No records found.</p>
           )}
         </div>

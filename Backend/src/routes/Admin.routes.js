@@ -8,13 +8,16 @@ const { Student, Staff, LeaveApplication, Notice, Event, CalendarEvent, Settings
 
 const router = Router();
 
-// Mounted as /students to match the teacher portal's real StudentPortal.jsx calls.
-router.use("/students", crudRouter(Student, { writeRoles: ["admin", "teacher"] }));
+// Mounted as /students to match the teacher portal's real StudentPortal.jsx
+// calls. main-accountant's and student-accountant's own StudentAdmission.jsx
+// forms also POST here — both included below.
+router.use("/students", crudRouter(Student, { writeRoles: ["admin", "teacher", "main-accountant", "student-accountant"] }));
 router.use("/staff", crudRouter(Staff, { writeRoles: ["admin"] }));
 // Mounted as /leave to match the teacher portal's real LeaveApplications.jsx calls.
 router.use("/leave", crudRouter(LeaveApplication)); // no writeRoles — anyone authenticated can apply/review
-router.use("/notices", crudRouter(Notice, { writeRoles: ["admin", "library"] }));
-router.use("/events", crudRouter(Event, { writeRoles: ["admin", "library"] }));
+// main-accountant's own Notices.jsx/Events.jsx also write here.
+router.use("/notices", crudRouter(Notice, { writeRoles: ["admin", "library", "main-accountant"] }));
+router.use("/events", crudRouter(Event, { writeRoles: ["admin", "library", "main-accountant"] }));
 router.use("/calendar-events", crudRouter(CalendarEvent, { writeRoles: ["admin", "library"] }));
 router.use("/settings", crudRouter(Settings, { writeRoles: ["admin"] }));
 

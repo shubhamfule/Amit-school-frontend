@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import LibraryShell, { LibAvatar } from "./LibraryShell";
-import { bookIssues } from "./libraryData";
+import { avatarPalette, initials } from "./libraryData";
+import { apiGet } from "../../teacher/utils/api";
 
 function statusClass(status) {
   if (status === "Returned") return "cleared";
@@ -8,6 +10,34 @@ function statusClass(status) {
 }
 
 export default function BookIssue() {
+  const [bookIssues, setBookIssues] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiGet("/book-issues")
+      .then((res) => {
+        if (cancelled) return;
+        setBookIssues(
+          (res.data ?? []).map((r, i) => ({
+            id: r.memberId || r._id,
+            name: r.name,
+            initials: initials(r.name),
+            avatar: avatarPalette[i % avatarPalette.length],
+            userType: r.userType,
+            bookId: r.bookId,
+            bookName: r.bookName,
+            issueDate: r.issueDate,
+            dueDate: r.dueDate,
+            status: r.status,
+          }))
+        );
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <LibraryShell icon="bi bi-journal-plus" title="Book issue records" count={bookIssues.length}>
       <div className="lib-table-wrap">

@@ -2,6 +2,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import PageHeader from "./PageHeader";
 import { teachingStaff, nonTeachingStaff } from "./staffAttendanceData";
+import { apiGet, apiPost } from "../../teacher/utils/api";
+
+// Frontend uses "teaching"/"non-teaching"; the shared StaffAttendanceMark
+// schema (Backend/src/module/Main-accountant.js) uses "teaching"/"nonTeaching".
+const toBackendType = (t) => (t === "non-teaching" ? "nonTeaching" : "teaching");
 
 const weekdayLong = { weekday: "long", day: "2-digit", month: "long", year: "numeric" };
 const weekdayShort = { weekday: "long", day: "2-digit", month: "short", year: "numeric" };
@@ -53,6 +58,27 @@ export default function AttendanceManagement() {
   const groupKey = `${staffType}-${selectedKey}`;
   const savedForGroup = !!savedDates[groupKey];
 
+  useEffect(() => {
+    let cancelled = false;
+    const params = new URLSearchParams({ staffType: toBackendType(staffType), date: selectedKey });
+    apiGet(`/staff-attendance?${params.toString()}`)
+      .then((res) => {
+        if (cancelled) return;
+        const docs = res.data ?? [];
+        if (docs.length === 0) return;
+        setMarks((m) => ({
+          ...m,
+          [groupKey]: Object.fromEntries(docs.map((d) => [d.personKey, d.status])),
+        }));
+        setSavedDates((s) => ({ ...s, [groupKey]: true }));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [staffType, selectedKey]);
+
   // Use each person's unique "key" (falls back to "id" for teaching staff,
   // which has no key field) so people who share a display ID — e.g. Clerk
   // C001 and Driver C001 — are tracked separately.
@@ -88,12 +114,22 @@ export default function AttendanceManagement() {
     else dateInputRef.current?.focus();
   };
 
-  const saveAttendance = () => {
-    setSavedDates((s) => ({ ...s, [groupKey]: true }));
-    showToast(
-      `Attendance saved for ${staffType === "teaching" ? "Teaching" : "Non-Teaching"} Staff — ${formatDate(selectedDate, weekdayShort)}`,
-      "ti-check"
-    );
+  const saveAttendance = async () => {
+    const records = list.map((s) => ({ personKey: s.key || s.id, status: getMark(s) }));
+    try {
+      await apiPost("/staff-attendance/bulk", {
+        staffType: toBackendType(staffType),
+        date: selectedKey,
+        records,
+      });
+      setSavedDates((s) => ({ ...s, [groupKey]: true }));
+      showToast(
+        `Attendance saved for ${staffType === "teaching" ? "Teaching" : "Non-Teaching"} Staff — ${formatDate(selectedDate, weekdayShort)}`,
+        "ti-check"
+      );
+    } catch (err) {
+      showToast(err.message || "Could not save attendance", "ti-alert-triangle");
+    }
   };
 
   return (

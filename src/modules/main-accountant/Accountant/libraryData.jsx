@@ -9,7 +9,7 @@ export const avatarPalette = [
   { bg: "#eaf3de", fg: "#3b6d11" }, // green
 ];
 
-function initials(name) {
+export function initials(name) {
   return name
     .replace(/['â€™]/g, "")
     .split(" ")

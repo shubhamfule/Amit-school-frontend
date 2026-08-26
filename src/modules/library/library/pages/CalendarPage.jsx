@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import PageHeader from '../components/PageHeader';
 import StatCard from '../components/StatCard';
 import Modal from '../components/Modal';
 import { useToast } from '../context/ToastContext';
+import { apiGet, apiPost } from '../utils/api';
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DNAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -19,28 +20,31 @@ function iso(y, m, d) {
   return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 }
 
-function seedEvents(year, month) {
-  return [
-    { date: iso(year, month, 2), title: 'Library Committee Meeting', type: 'meeting', time: '11:00 AM' },
-    { date: iso(year, month, 5), title: 'Book Fair Setup', type: 'bookfair', time: '09:00 AM' },
-    { date: iso(year, month, 8), title: 'Overdue Returns Due — Class 8', type: 'due', time: '' },
-    { date: iso(year, month, 14), title: 'Reading Skills Workshop', type: 'workshop', time: '02:00 PM' },
-    { date: iso(year, month, 18), title: 'Public Holiday', type: 'holiday', time: '' },
-    { date: iso(year, month, 22), title: 'New Arrivals Showcase', type: 'bookfair', time: '10:00 AM' },
-    { date: iso(year, month, 28), title: 'Monthly Fine Collection Due', type: 'due', time: '' },
-  ];
-}
-
 export default function CalendarPage() {
   const showToast = useToast();
   const today = new Date();
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
-  const [events, setEvents] = useState(() => seedEvents(today.getFullYear(), today.getMonth()));
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(null);
   const [activeTypes, setActiveTypes] = useState(Object.keys(TYPE_META));
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ title: '', date: '', time: '', type: 'due', desc: '' });
+
+  useEffect(() => {
+    let cancelled = false;
+    apiGet('/calendar-events')
+      .then((res) => {
+        if (cancelled) return;
+        setEvents((res.data ?? []).map((ev) => ({
+          id: ev._id, date: new Date(ev.date).toISOString().slice(0, 10), title: ev.title, type: ev.type || 'due', time: ev.time || '',
+        })));
+      })
+      .catch(() => { if (!cancelled) showToast('Could not load calendar events', 'ti-alert-circle'); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
 
   const toggleType = (t) => setActiveTypes((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]);
 
@@ -93,12 +97,17 @@ export default function CalendarPage() {
     fairs: monthEvents.filter((e) => e.type === 'bookfair').length,
   };
 
-  const saveEvent = () => {
+  const saveEvent = async () => {
     if (!form.title || !form.date) { showToast('Please fill in title and date', 'ti-alert-circle'); return; }
-    setEvents((prev) => [...prev, { date: form.date, title: form.title, type: form.type, time: form.time }]);
-    setShowAdd(false);
-    setForm({ title: '', date: '', time: '', type: 'due', desc: '' });
-    showToast(`Event "${form.title}" added!`, 'ti-calendar-plus');
+    try {
+      const res = await apiPost('/calendar-events', { title: form.title, date: form.date, time: form.time, type: form.type });
+      setEvents((prev) => [...prev, { id: res.data._id, date: new Date(res.data.date).toISOString().slice(0, 10), title: res.data.title, type: res.data.type || 'due', time: res.data.time || '' }]);
+      setShowAdd(false);
+      setForm({ title: '', date: '', time: '', type: 'due', desc: '' });
+      showToast(`Event "${form.title}" added!`, 'ti-calendar-plus');
+    } catch (err) {
+      showToast(err.message || 'Could not add event', 'ti-alert-circle');
+    }
   };
 
   return (
@@ -161,7 +170,10 @@ export default function CalendarPage() {
           <div className="ec-card">
             <div className="ec-card-head"><h2><i className="ti ti-list me-1" style={{ color: 'var(--purple)' }}></i>Upcoming Events</h2></div>
             <div className="upcoming-list">
-              {upcoming.length === 0 && (
+              {loading && (
+                <div className="upcoming-empty"><i className="ti ti-loader" style={{ fontSize: 22, display: 'block', marginBottom: 6 }}></i>Loading events…</div>
+              )}
+              {!loading && upcoming.length === 0 && (
                 <div className="upcoming-empty"><i className="ti ti-calendar-off" style={{ fontSize: 22, display: 'block', marginBottom: 6 }}></i>No upcoming events</div>
               )}
               {upcoming.map((ev, i) => {

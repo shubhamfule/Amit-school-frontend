@@ -35,8 +35,12 @@ const nonTeachingOnboardingSchema = new Schema(
     gender: { type: String, enum: ["Male", "Female", "Other"], required: true },
     caste: { type: String, required: true },
     category: { type: String, enum: ["General", "OBC", "SC", "ST", "EWS"], required: true },
-    religion: { type: String, required: true },
-    nationality: { type: String, required: true },
+    // religion/nationality and monthlySalary/joiningDate below are not
+    // required — main-accountant's own NonTeachingRegistration.jsx (a
+    // prospective applicant's form) never collects religion/nationality at
+    // all, and sends salaryExpect/availableToJoin instead of the latter two.
+    religion: { type: String },
+    nationality: { type: String },
     maritalStatus: { type: String, enum: ["Single", "Married"], required: true },
     email: { type: String },
     mobile: { type: String, required: true },
@@ -53,11 +57,15 @@ const nonTeachingOnboardingSchema = new Schema(
       required: true,
     },
     workExp: { type: String, required: true }, // e.g. "3-5 years" — free select, not numeric
-    shift: { type: String, enum: ["Morning Shift", "Afternoon Shift"], required: true },
+    // main-accountant's own NonTeachingRegistration.jsx uses a different
+    // shift vocabulary (Day/Night/Rotational) — kept alongside.
+    shift: { type: String, enum: ["Morning Shift", "Afternoon Shift", "Day Shift", "Night Shift", "Rotational"], required: true },
     prevOrg: { type: String },
 
-    monthlySalary: { type: Number, required: true, min: 0 }, // real figure, not "expected"
-    joiningDate: { type: Date, required: true },
+    monthlySalary: { type: Number, min: 0 }, // real figure, once actually hired
+    joiningDate: { type: Date },
+    salaryExpect: { type: String }, // main-accountant's applicant-intake naming for an expected salary
+    availableToJoin: { type: Date }, // main-accountant's applicant-intake naming for joiningDate
     profile: { type: String }, // free-text "about yourself"
 
     qualification: {

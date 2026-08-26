@@ -1,34 +1,37 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import PageHeader from '../components/PageHeader';
 import StatCard from '../components/StatCard';
 import Modal from '../components/Modal';
 import { useToast } from '../context/ToastContext';
 import { exportToExcel } from '../utils/exportHelpers';
-
-const INITIAL_BOOKS = [
-  { id: 'BK-1001', name: 'NCERT Mathematics — Class 8', author: 'NCERT', category: 'Mathematics', qty: 12, status: 'Available' },
-  { id: 'BK-1002', name: 'NCERT Science — Class 9', author: 'NCERT', category: 'Science', qty: 10, status: 'Issued' },
-  { id: 'BK-1003', name: 'A Collection of English Poems', author: 'R. Sharma', category: 'English Literature', qty: 8, status: 'Available' },
-  { id: 'BK-1004', name: 'Hindi Vyakaran — Class 7', author: 'S. Verma', category: 'Hindi', qty: 15, status: 'Overdue' },
-  { id: 'BK-1005', name: 'Social Science — Class 10', author: 'NCERT', category: 'Social Science', qty: 14, status: 'Available' },
-  { id: 'BK-1006', name: 'Panchatantra Stories', author: 'Vishnu Sharma', category: 'Story & Moral Books', qty: 20, status: 'Issued' },
-  { id: 'BK-1007', name: 'General Knowledge Digest 2024', author: 'Arihant Experts', category: 'Reference & General Knowledge', qty: 9, status: 'Available' },
-  { id: 'BK-1008', name: 'Olympiad Mathematics Workbook', author: 'MTG Editorial', category: 'Competitive Exam Books', qty: 6, status: 'Overdue' },
-  { id: 'BK-1009', name: 'NCERT Science — Class 7', author: 'NCERT', category: 'Science', qty: 11, status: 'Available' },
-  { id: 'BK-1010', name: 'Akbar-Birbal Tales', author: 'Vikram Singh', category: 'Story & Moral Books', qty: 18, status: 'Available' },
-];
+import { apiGet, apiPost } from '../utils/api';
 
 const CATEGORIES = ['Mathematics','Science','English Literature','Hindi','Social Science','Story & Moral Books','Reference & General Knowledge','Competitive Exam Books'];
 
 export default function BookCatalog() {
   const showToast = useToast();
-  const [books, setBooks] = useState(INITIAL_BOOKS);
+  const [books, setBooks] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
   const [status, setStatus] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [showIssue, setShowIssue] = useState(false);
   const [form, setForm] = useState({ title: '', isbn: '', author: '', publisher: '', category: '', copies: '' });
+
+  useEffect(() => {
+    let cancelled = false;
+    apiGet('/library')
+      .then((res) => {
+        if (cancelled) return;
+        setBooks((res.data ?? []).map((b) => ({
+          id: b.bookId || b._id, name: b.title, author: b.author || '—', category: b.category, qty: b.quantity ?? 0, status: b.status,
+        })));
+      })
+      .catch(() => { if (!cancelled) showToast('Could not load book catalog', 'ti-alert-circle'); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
 
   const filtered = useMemo(() => books.filter((b) => {
     const q = search.trim().toLowerCase();
@@ -45,13 +48,21 @@ export default function BookCatalog() {
     overdue: books.filter((b) => b.status === 'Overdue').length * 7 + 1,
   };
 
-  const saveBook = () => {
+  const saveBook = async () => {
     if (!form.title || !form.category) { showToast('Please fill in required fields', 'ti-alert-circle'); return; }
     const newId = 'BK-' + (1000 + books.length + 1);
-    setBooks((prev) => [...prev, { id: newId, name: form.title, author: form.author || '—', category: form.category, qty: Number(form.copies) || 1, status: 'Available' }]);
-    setShowAdd(false);
-    setForm({ title: '', isbn: '', author: '', publisher: '', category: '', copies: '' });
-    showToast('New book added to catalog successfully!', 'ti-circle-check');
+    try {
+      const res = await apiPost('/library', {
+        bookId: newId, title: form.title, isbn: form.isbn, author: form.author || '—', publisher: form.publisher,
+        category: form.category, quantity: Number(form.copies) || 1, status: 'Available',
+      });
+      setBooks((prev) => [...prev, { id: res.data.bookId || res.data._id, name: res.data.title, author: res.data.author || '—', category: res.data.category, qty: res.data.quantity ?? 0, status: res.data.status }]);
+      setShowAdd(false);
+      setForm({ title: '', isbn: '', author: '', publisher: '', category: '', copies: '' });
+      showToast('New book added to catalog successfully!', 'ti-circle-check');
+    } catch (err) {
+      showToast(err.message || 'Could not add book', 'ti-alert-circle');
+    }
   };
 
   const badgeClass = { Available: 'badge-available', Issued: 'badge-issued', Overdue: 'badge-overdue' };
@@ -120,7 +131,8 @@ export default function BookCatalog() {
               ))}
             </tbody>
           </table>
-          {filtered.length === 0 && (
+          {loading && <p className="text-center py-3 mb-0" style={{ color: 'var(--text-muted)', fontSize: 13 }}>Loading books…</p>}
+          {!loading && filtered.length === 0 && (
             <p className="text-center py-3 mb-0" style={{ color: 'var(--text-muted)', fontSize: 13 }}>No books match your search/filter.</p>
           )}
         </div>

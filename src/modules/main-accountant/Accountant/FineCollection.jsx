@@ -1,9 +1,38 @@
+import { useEffect, useState } from "react";
 import LibraryShell, { LibAvatar } from "./LibraryShell";
-import { fineCollections } from "./libraryData";
+import { avatarPalette, initials } from "./libraryData";
+import { apiGet } from "../../teacher/utils/api";
 
 const inr = (n) => `₹${Number(n).toLocaleString("en-IN")}`;
 
 export default function FineCollection() {
+  const [fineCollections, setFineCollections] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiGet("/library-fines")
+      .then((res) => {
+        if (cancelled) return;
+        setFineCollections(
+          (res.data ?? []).map((r, i) => ({
+            id: r.fineId || r._id,
+            name: r.name,
+            initials: initials(r.name),
+            avatar: avatarPalette[i % avatarPalette.length],
+            userType: r.userType,
+            bookId: r.bookId,
+            type: r.type || (r.fineAmount != null ? "Overdue" : ""),
+            amount: r.amount ?? r.fineAmount ?? 0,
+            status: r.status,
+          }))
+        );
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <LibraryShell icon="bi bi-cash" title="Fine collection records" count={fineCollections.length}>
       <div className="lib-table-wrap">

@@ -7,6 +7,7 @@ const { Router } = require("express");
 const crudRouter = require("../utils/crudRouter");
 const catchAsync = require("../utils/catchAsync");
 const ApiError = require("../utils/ApiError");
+const { protect } = require("../middleware/auth");
 const { StudentAttendance, Mark, ScheduleEntry, Assignment } = require("../module/Teacher");
 
 const router = Router();
@@ -21,6 +22,7 @@ function dayRange(dateStr) {
 const attendanceRouter = Router();
 attendanceRouter.get(
   "/",
+  protect,
   catchAsync(async (req, res) => {
     const filter = {};
     if (req.query.date) {
@@ -33,6 +35,7 @@ attendanceRouter.get(
 );
 attendanceRouter.post(
   "/bulk",
+  protect,
   catchAsync(async (req, res) => {
     const { date, records } = req.body;
     if (!date || !Array.isArray(records)) throw new ApiError(400, "date and records[] are required");
@@ -62,6 +65,7 @@ router.use("/marks", crudRouter(Mark));
 const scheduleRouter = crudRouter(ScheduleEntry);
 scheduleRouter.post(
   "/bulk",
+  protect,
   catchAsync(async (req, res) => {
     const { entries } = req.body;
     if (!Array.isArray(entries) || entries.length === 0) throw new ApiError(400, "entries[] is required");

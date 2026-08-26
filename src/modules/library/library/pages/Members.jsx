@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import PageHeader from '../components/PageHeader';
 import StatCard from '../components/StatCard';
 import Modal from '../components/Modal';
 import { useToast } from '../context/ToastContext';
 import { exportToExcel } from '../utils/exportHelpers';
+import { apiGet, apiPost } from '../utils/api';
 
 const AVATAR_COLORS = [
   { bg: 'var(--purple-light)', fg: 'var(--purple)' }, { bg: 'var(--blue-light)', fg: 'var(--blue)' },
@@ -16,29 +17,26 @@ function initials(name) {
   return name.replace(/^(Mr\.|Mrs\.|Ms\.)\s*/, '').split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
 }
 
-const INITIAL_MEMBERS = [
-  { id: 'MEM-101', name: 'Priya Sharma', subject: 'Class 8A', role: 'Student', issued: 2, returned: 5, record: 'Active' },
-  { id: 'MEM-102', name: 'Rohit Verma', subject: 'Class 7B', role: 'Student', issued: 0, returned: 3, record: 'Clear' },
-  { id: 'MEM-103', name: 'Karan Mehta', subject: 'Class 9A', role: 'Student', issued: 1, returned: 2, record: 'Overdue' },
-  { id: 'MEM-104', name: 'Simran Kaur', subject: 'Class 6A', role: 'Student', issued: 0, returned: 4, record: 'Clear' },
-  { id: 'MEM-105', name: 'Aditya Singh', subject: 'Class 10B', role: 'Student', issued: 0, returned: 6, record: 'Clear' },
-  { id: 'MEM-106', name: 'Ananya Gupta', subject: 'Class 8B', role: 'Student', issued: 0, returned: 1, record: 'Clear' },
-  { id: 'MEM-201', name: 'Mrs. Anjali Nair', subject: 'Hindi', role: 'Teacher', issued: 1, returned: 8, record: 'Overdue' },
-  { id: 'MEM-202', name: 'Mr. Suresh Iyer', subject: 'General Knowledge', role: 'Teacher', issued: 1, returned: 10, record: 'Active' },
-  { id: 'MEM-203', name: 'Mrs. Kavita Rao', subject: 'Science', role: 'Teacher', issued: 0, returned: 12, record: 'Clear' },
-  { id: 'MEM-204', name: 'Mr. Rajesh Kumar', subject: 'Social Science', role: 'Teacher', issued: 0, returned: 9, record: 'Clear' },
-];
-
 const recordBadge = { Active: 'badge-issued', Clear: 'badge-available', Overdue: 'badge-overdue' };
 
 export default function Members() {
   const showToast = useToast();
-  const [members, setMembers] = useState(INITIAL_MEMBERS);
+  const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [role, setRole] = useState('');
   const [record, setRecord] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ name: '', role: '', subject: '' });
+
+  useEffect(() => {
+    let cancelled = false;
+    apiGet('/library-members')
+      .then((res) => { if (!cancelled) setMembers((res.data ?? []).map((m) => ({ ...m, id: m.memberId }))); })
+      .catch(() => { if (!cancelled) showToast('Could not load members', 'ti-alert-circle'); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
 
   const filtered = useMemo(() => members.filter((m) => {
     const q = search.trim().toLowerCase();
@@ -55,14 +53,21 @@ export default function Members() {
     overdue: members.filter((m) => m.record === 'Overdue').length,
   };
 
-  const saveMember = () => {
+  const saveMember = async () => {
     if (!form.name || !form.role) { showToast('Please fill in required fields', 'ti-alert-circle'); return; }
     const prefix = form.role === 'Teacher' ? 'MEM-2' : 'MEM-1';
     const newId = prefix + String(members.length + 1).padStart(2, '0');
-    setMembers((prev) => [...prev, { id: newId, name: form.name, subject: form.subject || '—', role: form.role, issued: 0, returned: 0, record: 'Clear' }]);
-    setShowAdd(false);
-    setForm({ name: '', role: '', subject: '' });
-    showToast('New member added successfully!', 'ti-user-plus');
+    try {
+      const res = await apiPost('/library-members', {
+        memberId: newId, name: form.name, subject: form.subject || '—', role: form.role, issued: 0, returned: 0, record: 'Clear',
+      });
+      setMembers((prev) => [...prev, { ...res.data, id: res.data.memberId }]);
+      setShowAdd(false);
+      setForm({ name: '', role: '', subject: '' });
+      showToast('New member added successfully!', 'ti-user-plus');
+    } catch (err) {
+      showToast(err.message || 'Could not add member', 'ti-alert-circle');
+    }
   };
 
   const exportMembers = () => exportToExcel('members', [
@@ -127,7 +132,8 @@ export default function Members() {
               })}
             </tbody>
           </table>
-          {filtered.length === 0 && (
+          {loading && <p className="text-center py-3 mb-0" style={{ color: 'var(--text-muted)', fontSize: 13 }}>Loading members…</p>}
+          {!loading && filtered.length === 0 && (
             <p className="text-center py-3 mb-0" style={{ color: 'var(--text-muted)', fontSize: 13 }}>No members match your search/filter.</p>
           )}
         </div>

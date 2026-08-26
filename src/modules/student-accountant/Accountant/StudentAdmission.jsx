@@ -16,7 +16,8 @@ const empty = {
 
 // Only the fields that exist on the backend Student schema (Backend/src/module/Admin.js)
 // are sent — the wizard collects a fuller admission profile (aadhaar, religion,
-// documents, etc.) than that schema stores.
+// etc.) than that schema stores. Step 3's uploaded documents go under `folder`,
+// which the schema does store.
 function toStudentPayload(f) {
   return {
     name: `${f.firstName} ${f.lastName}`.trim(),
@@ -28,6 +29,17 @@ function toStudentPayload(f) {
     contact: f.mobile,
     address: f.currentAddress,
     academicYear: f.session,
+    folder: {
+      photo: f.photo,
+      birthCert: f.birthCert,
+      tc: f.tc,
+      marksheet: f.marksheet,
+      addressProof: f.addressProof,
+      signature: f.signature,
+      aadhaarDoc: f.aadhaarDoc,
+      casteDoc: f.casteDoc,
+      domicileDoc: f.domicileDoc,
+    },
   };
 }
 

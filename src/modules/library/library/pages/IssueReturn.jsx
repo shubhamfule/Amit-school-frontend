@@ -1,29 +1,17 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import PageHeader from '../components/PageHeader';
 import StatCard from '../components/StatCard';
 import Modal from '../components/Modal';
 import { useToast } from '../context/ToastContext';
 import { exportToExcel } from '../utils/exportHelpers';
+import { apiGet, apiPost } from '../utils/api';
 
-// Note: the "id" field here is the student/teacher's unique Student ID
-// (matching the ID assigned to them on the Members page, e.g. MEM-101) —
-// the same ID is reused across their Issue and Return records instead of
-// generating a separate ISS-/RET- record ID per section.
-const INITIAL_ISSUED = [
-  { id: 'MEM-101', name: 'Priya Sharma', type: 'Student', bookId: 'BK-1002', bookName: 'NCERT Science — Class 9', issueDate: '01 Jul 2024', dueDate: '15 Jul 2024' },
-  { id: 'MEM-102', name: 'Rohit Verma', type: 'Student', bookId: 'BK-1006', bookName: 'Panchatantra Stories', issueDate: '03 Jul 2024', dueDate: '17 Jul 2024' },
-  { id: 'MEM-201', name: 'Mrs. Anjali Nair', type: 'Teacher', bookId: 'BK-1004', bookName: 'Hindi Vyakaran — Class 7', issueDate: '28 Jun 2024', dueDate: '12 Jul 2024' },
-  { id: 'MEM-103', name: 'Karan Mehta', type: 'Student', bookId: 'BK-1008', bookName: 'Olympiad Mathematics Workbook', issueDate: '30 Jun 2024', dueDate: '14 Jul 2024' },
-  { id: 'MEM-202', name: 'Mr. Suresh Iyer', type: 'Teacher', bookId: 'BK-1007', bookName: 'General Knowledge Digest 2024', issueDate: '05 Jul 2024', dueDate: '19 Jul 2024' },
-];
-
-const INITIAL_RETURNED = [
-  { id: 'MEM-106', name: 'Ananya Gupta', type: 'Student', bookId: 'BK-1001', issueDate: '20 Jun 2024', returnDate: '04 Jul 2024', clearanceAmount: 0, damageType: 'No Damage', payment: 'Paid' },
-  { id: 'MEM-203', name: 'Mrs. Kavita Rao', type: 'Teacher', bookId: 'BK-1009', issueDate: '18 Jun 2024', returnDate: '02 Jul 2024', clearanceAmount: 0, damageType: 'No Damage', payment: 'Paid' },
-  { id: 'MEM-105', name: 'Aditya Singh', type: 'Student', bookId: 'BK-1003', issueDate: '15 Jun 2024', returnDate: '05 Jul 2024', clearanceAmount: 30, damageType: 'Torn Pages', payment: 'Unpaid' },
-  { id: 'MEM-204', name: 'Mr. Rajesh Kumar', type: 'Teacher', bookId: 'BK-1005', issueDate: '22 Jun 2024', returnDate: '06 Jul 2024', clearanceAmount: 0, damageType: 'No Damage', payment: 'Paid' },
-  { id: 'MEM-104', name: 'Simran Kaur', type: 'Student', bookId: 'BK-1010', issueDate: '25 Jun 2024', returnDate: '09 Jul 2024', clearanceAmount: 20, damageType: 'Water Damage', payment: 'Unpaid' },
-];
+function formatDate(value) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
 
 const EMPTY_ISSUE_FORM = { id: '', name: '', userType: '', bookId: '', bookName: '', issueDate: '', dueDate: '' };
 
@@ -41,14 +29,33 @@ const RETURN_COLUMNS = [
 
 export default function IssueReturn() {
   const showToast = useToast();
-  const [issued, setIssued] = useState(INITIAL_ISSUED);
-  const [returned] = useState(INITIAL_RETURNED);
+  const [issued, setIssued] = useState([]);
+  const [returned, setReturned] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [activeTable, setActiveTable] = useState('issue'); // 'issue' | 'return'
   const [userType, setUserType] = useState('');
   const [issuedSearch, setIssuedSearch] = useState('');
   const [returnedSearch, setReturnedSearch] = useState('');
   const [showIssue, setShowIssue] = useState(false);
   const [issueForm, setIssueForm] = useState(EMPTY_ISSUE_FORM);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([apiGet('/book-issues'), apiGet('/book-returns')])
+      .then(([issuedRes, returnedRes]) => {
+        if (cancelled) return;
+        setIssued((issuedRes.data ?? []).map((r) => ({
+          id: r.memberId || r._id, name: r.name, type: r.userType, bookId: r.bookId, bookName: r.bookName, issueDate: r.issueDate, dueDate: r.dueDate,
+        })));
+        setReturned((returnedRes.data ?? []).map((r) => ({
+          id: r.memberId || r._id, name: r.name, type: r.userType, bookId: r.bookId, issueDate: r.issueDate, returnDate: r.returnDate,
+          clearanceAmount: r.clearanceAmount ?? 0, damageType: r.damageType || 'No Damage', payment: r.payment || 'Unpaid',
+        })));
+      })
+      .catch(() => { if (!cancelled) showToast('Could not load issue/return records', 'ti-alert-circle'); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
 
   const filteredIssued = useMemo(() => issued.filter((r) =>
     (!userType || r.type === userType) &&
@@ -60,19 +67,27 @@ export default function IssueReturn() {
     (!returnedSearch || `${r.name} ${r.bookId} ${r.id}`.toLowerCase().includes(returnedSearch.toLowerCase()))
   ), [returned, userType, returnedSearch]);
 
-  const saveIssue = () => {
-    if (!issueForm.name || !issueForm.userType || !issueForm.bookName) {
+  const saveIssue = async () => {
+    if (!issueForm.name || !issueForm.userType || !issueForm.bookName || !issueForm.issueDate || !issueForm.dueDate) {
       showToast('Please fill in required fields', 'ti-alert-circle');
       return;
     }
     const newId = issueForm.id || (issueForm.userType === 'Teacher' ? 'MEM-2' : 'MEM-1') + String(issued.length + 1).padStart(2, '0');
-    setIssued((prev) => [{
-      id: newId, name: issueForm.name, type: issueForm.userType, bookId: issueForm.bookId || '—',
-      bookName: issueForm.bookName, issueDate: issueForm.issueDate || '—', dueDate: issueForm.dueDate || '—',
-    }, ...prev]);
-    setShowIssue(false);
-    setIssueForm(EMPTY_ISSUE_FORM);
-    showToast('Book issued successfully!', 'ti-calendar-check');
+    try {
+      const res = await apiPost('/book-issues', {
+        memberId: newId, name: issueForm.name, userType: issueForm.userType, bookId: issueForm.bookId || '—',
+        bookName: issueForm.bookName, issueDate: issueForm.issueDate, dueDate: issueForm.dueDate,
+      });
+      setIssued((prev) => [{
+        id: res.data.memberId || res.data._id, name: res.data.name, type: res.data.userType, bookId: res.data.bookId,
+        bookName: res.data.bookName, issueDate: res.data.issueDate, dueDate: res.data.dueDate,
+      }, ...prev]);
+      setShowIssue(false);
+      setIssueForm(EMPTY_ISSUE_FORM);
+      showToast('Book issued successfully!', 'ti-calendar-check');
+    } catch (err) {
+      showToast(err.message || 'Could not issue book', 'ti-alert-circle');
+    }
   };
 
   const exportIssued = () => exportToExcel('issue-table', ISSUE_COLUMNS, filteredIssued);
@@ -134,12 +149,13 @@ export default function IssueReturn() {
                 {filteredIssued.map((r) => (
                   <tr key={r.id}>
                     <td className="text-start">{r.id}</td><td className="text-start">{r.name}</td><td>{r.type}</td><td>{r.bookId}</td>
-                    <td className="text-start">{r.bookName}</td><td>{r.issueDate}</td><td>{r.dueDate}</td>
+                    <td className="text-start">{r.bookName}</td><td>{formatDate(r.issueDate)}</td><td>{formatDate(r.dueDate)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            {filteredIssued.length === 0 && <p className="text-center py-3 mb-0" style={{ color: 'var(--text-muted)', fontSize: 13 }}>No issued books match your search/filter.</p>}
+            {loading && <p className="text-center py-3 mb-0" style={{ color: 'var(--text-muted)', fontSize: 13 }}>Loading…</p>}
+            {!loading && filteredIssued.length === 0 && <p className="text-center py-3 mb-0" style={{ color: 'var(--text-muted)', fontSize: 13 }}>No issued books match your search/filter.</p>}
           </div>
         </div>
       )}
@@ -162,13 +178,14 @@ export default function IssueReturn() {
                 {filteredReturned.map((r) => (
                   <tr key={r.id}>
                     <td className="text-start">{r.id}</td><td className="text-start">{r.name}</td><td>{r.type}</td><td>{r.bookId}</td>
-                    <td>{r.issueDate}</td><td>{r.returnDate}</td><td>₹{r.clearanceAmount}</td><td>{r.damageType}</td>
+                    <td>{formatDate(r.issueDate)}</td><td>{formatDate(r.returnDate)}</td><td>₹{r.clearanceAmount}</td><td>{r.damageType}</td>
                     <td><span className={`badge-status ${r.payment === 'Paid' ? 'badge-ontime' : 'badge-late'}`}>{r.payment}</span></td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            {filteredReturned.length === 0 && <p className="text-center py-3 mb-0" style={{ color: 'var(--text-muted)', fontSize: 13 }}>No returned books match your search/filter.</p>}
+            {loading && <p className="text-center py-3 mb-0" style={{ color: 'var(--text-muted)', fontSize: 13 }}>Loading…</p>}
+            {!loading && filteredReturned.length === 0 && <p className="text-center py-3 mb-0" style={{ color: 'var(--text-muted)', fontSize: 13 }}>No returned books match your search/filter.</p>}
           </div>
         </div>
       )}

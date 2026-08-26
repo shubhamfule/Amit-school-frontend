@@ -1,35 +1,44 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import PageHeader from '../components/PageHeader';
 import StatCard from '../components/StatCard';
 import Modal from '../components/Modal';
 import { useToast } from '../context/ToastContext';
 import { exportToExcel } from '../utils/exportHelpers';
+import { apiGet, apiPost } from '../utils/api';
 import './Events.css';
 
 const BANNER_COLORS = ['var(--purple)', 'var(--pink)', 'var(--blue)', 'var(--teal)', 'var(--amber)', 'var(--green)'];
-
-const INITIAL_EVENTS = [
-  { id: 'EVT-001', icon: 'ti-trophy', title: 'Annual Sports Day', date: '15 Jul 2024', venue: 'School Ground', status: 'Scheduled', desc: 'A full day of athletics, relays and team sports for all age groups.' },
-  { id: 'EVT-002', icon: 'ti-palette', title: 'Art & Craft Exhibition', date: '18 Jul 2024', venue: 'Main Hall', status: 'Upcoming', desc: 'Student artwork on display, judged by the art faculty.' },
-  { id: 'EVT-003', icon: 'ti-flask', title: 'Science Exhibition', date: '22 Jul 2024', venue: 'Science Block', status: 'Upcoming', desc: 'Student-led experiments and working models across all branches of science.' },
-  { id: 'EVT-004', icon: 'ti-books', title: 'Book Fair & Author Meet', date: '12 Jul 2024', venue: 'Library Lawn', status: 'Scheduled', desc: 'Browse and buy from a curated selection of books, with a live author meet.' },
-  { id: 'EVT-005', icon: 'ti-microphone-2', title: 'Annual Reading Marathon', date: '15 Jul 2024', venue: 'Auditorium', status: 'Completed', desc: 'A day-long collective reading session across every grade.' },
-  { id: 'EVT-006', icon: 'ti-gift', title: 'Book Donation Drive', date: '18 Jul 2024', venue: 'Library Entrance', status: 'Completed', desc: 'Collecting gently-used books from students and staff for donation.' },
-];
 
 const STATUS_OPTIONS = ['Scheduled', 'Upcoming', 'Completed', 'Cancelled'];
 const EMPTY_FORM = { title: '', date: '', venue: '', status: 'Upcoming', desc: '', icon: 'ti-calendar-event' };
 
 const badgeClass = { Scheduled: 'badge-issued', Upcoming: 'badge-pending2', Completed: 'badge-available', Cancelled: 'badge-overdue' };
 
+function formatDate(value) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
 export default function Events() {
   const showToast = useToast();
-  const [events, setEvents] = useState(INITIAL_EVENTS);
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [activeEvent, setActiveEvent] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiGet('/events')
+      .then((res) => { if (!cancelled) setEvents((res.data ?? []).map((e) => ({ ...e, id: e._id }))); })
+      .catch(() => { if (!cancelled) showToast('Could not load events', 'ti-alert-circle'); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
 
   const filtered = useMemo(() => events.filter((e) => {
     const q = search.trim().toLowerCase();
@@ -45,16 +54,20 @@ export default function Events() {
     completed: events.filter((e) => e.status === 'Completed').length,
   };
 
-  const saveEvent = () => {
+  const saveEvent = async () => {
     if (!form.title || !form.date || !form.venue) {
       showToast('Please fill in required fields', 'ti-alert-circle');
       return;
     }
-    const newId = 'EVT-' + String(events.length + 1).padStart(3, '0');
-    setEvents((prev) => [{ id: newId, ...form }, ...prev]);
-    setShowAdd(false);
-    setForm(EMPTY_FORM);
-    showToast('Event added successfully!', 'ti-calendar-plus');
+    try {
+      const res = await apiPost('/events', form);
+      setEvents((prev) => [{ ...res.data, id: res.data._id }, ...prev]);
+      setShowAdd(false);
+      setForm(EMPTY_FORM);
+      showToast('Event added successfully!', 'ti-calendar-plus');
+    } catch (err) {
+      showToast(err.message || 'Could not add event', 'ti-alert-circle');
+    }
   };
 
   const exportEvents = () => exportToExcel('events', [
@@ -103,13 +116,16 @@ export default function Events() {
                 <h5>{ev.title}</h5>
                 <span className={`badge-status ${badgeClass[ev.status]}`}>{ev.status}</span>
               </div>
-              <p className="event-meta"><i className="ti ti-calendar me-1"></i>{ev.date}</p>
+              <p className="event-meta"><i className="ti ti-calendar me-1"></i>{formatDate(ev.date)}</p>
               <p className="event-meta"><i className="ti ti-map-pin me-1"></i>{ev.venue}</p>
               <p className="event-desc">{ev.desc}</p>
             </div>
           </div>
         ))}
-        {filtered.length === 0 && (
+        {loading && (
+          <p className="text-center py-4 mb-0" style={{ color: 'var(--text-muted)', fontSize: 13, gridColumn: '1 / -1' }}>Loading events…</p>
+        )}
+        {!loading && filtered.length === 0 && (
           <p className="text-center py-4 mb-0" style={{ color: 'var(--text-muted)', fontSize: 13, gridColumn: '1 / -1' }}>No events match your search/filter.</p>
         )}
       </div>
@@ -136,7 +152,7 @@ export default function Events() {
         footer={<button className="btn-purple" onClick={() => setActiveEvent(null)}>Close</button>}>
         {activeEvent && (
           <div>
-            <p className="event-meta"><i className="ti ti-calendar me-1"></i>{activeEvent.date}</p>
+            <p className="event-meta"><i className="ti ti-calendar me-1"></i>{formatDate(activeEvent.date)}</p>
             <p className="event-meta"><i className="ti ti-map-pin me-1"></i>{activeEvent.venue}</p>
             <p className="event-meta"><i className="ti ti-tag me-1"></i>{activeEvent.status}</p>
             <p className="mb-0" style={{ color: 'var(--text-secondary)', fontSize: 13.5 }}>{activeEvent.desc}</p>

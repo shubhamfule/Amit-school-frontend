@@ -116,7 +116,7 @@ const expenseSchema = new Schema(
     expense: { type: String, required: true, trim: true }, // description
     category: { type: String, enum: ["Office", "Transport", "Utility", "Maintenance"], required: true },
     amount: { type: Number, required: true, min: 0 },
-    mode: { type: String, enum: ["Cash", "Bank"], required: true },
+    mode: { type: String, enum: ["Cash", "Bank", "UPI"], required: true },
     paymentProof: { type: String, default: null }, // file reference; null => Pending in the UI
   },
   { timestamps: true }

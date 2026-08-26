@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import PageHeader from "./PageHeader";
 import ExportButtons from "./ExportButtons";
-import { initialExpenses } from "./salaryData";
+import { apiGet, apiPost, apiPatch, apiDelete } from "../../teacher/utils/api";
 
 const inr = (n) => `₹${Number(n).toLocaleString("en-IN")}`;
 const categories = ["Utility", "Office", "Transport", "Maintenance"];
@@ -20,19 +20,53 @@ const exportColumns = [
   { header: "Status", key: "status" },
 ];
 
+// paymentProof is stored on the backend as a plain "data:<mime>;base64,..."
+// string (see Backend/src/module/Main-accountant.js) — reconstruct the
+// {name, type, dataUrl} shape the table/thumbnail rendering below expects.
+function proofFromStored(value) {
+  if (!value) return null;
+  const match = /^data:([^;]+);base64,/.exec(value);
+  return { name: "Payment proof", type: match ? match[1] : "application/octet-stream", dataUrl: value };
+}
+
+function mapExpense(r) {
+  return {
+    id: r._id,
+    date: r.date ? new Date(r.date).toISOString().slice(0, 10) : "",
+    expense: r.expense,
+    category: r.category,
+    amount: r.amount,
+    mode: r.mode,
+    paymentProof: proofFromStored(r.paymentProof),
+  };
+}
+
 export default function SchoolExpenses() {
   const { showToast } = useOutletContext();
-  const [rows, setRows] = useState(initialExpenses);
+  const [rows, setRows] = useState([]);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState({ date: "", expense: "", category: categories[0], amount: "", mode: modes[0] });
 
+  useEffect(() => {
+    let cancelled = false;
+    apiGet("/expenses")
+      .then((res) => {
+        if (cancelled) return;
+        setRows((res.data ?? []).map(mapExpense));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Payment status is always derived from whether a proof file has been uploaded —
   // it is never set independently, so it can't drift out of sync with the upload.
   const computed = useMemo(
-    () => rows.map((r, i) => ({ ...r, _idx: i, status: r.paymentProof ? "Paid" : "Pending" })),
+    () => rows.map((r) => ({ ...r, status: r.paymentProof ? "Paid" : "Pending" })),
     [rows]
   );
 
@@ -53,43 +87,59 @@ export default function SchoolExpenses() {
     proofLabel: r.paymentProof ? r.paymentProof.name : "Not uploaded",
   }));
 
-  const addExpense = () => {
+  const addExpense = async () => {
     if (!form.date || !form.expense || !form.amount) {
       showToast("Please fill date, expense and amount", "ti-alert-triangle");
       return;
     }
-    setRows((r) => [...r, { ...form, amount: Number(form.amount), paymentProof: null }]);
-    setForm({ date: "", expense: "", category: categories[0], amount: "", mode: modes[0] });
-    setModalOpen(false);
-    showToast("Expense added", "ti-check");
+    try {
+      const res = await apiPost("/expenses", { ...form, amount: Number(form.amount) });
+      setRows((r) => [...r, mapExpense(res.data)]);
+      setForm({ date: "", expense: "", category: categories[0], amount: "", mode: modes[0] });
+      setModalOpen(false);
+      showToast("Expense added", "ti-check");
+    } catch (err) {
+      showToast(err.message || "Could not add expense", "ti-alert-triangle");
+    }
   };
 
-  const removeRow = (idx) => {
-    setRows((r) => r.filter((_, i) => i !== idx));
-    showToast("Expense removed", "ti-trash");
+  const removeRow = async (id) => {
+    try {
+      await apiDelete(`/expenses/${id}`);
+      setRows((r) => r.filter((row) => row.id !== id));
+      showToast("Expense removed", "ti-trash");
+    } catch {
+      showToast("Could not remove expense", "ti-alert-triangle");
+    }
   };
 
-  const handleFileChange = (idx, file) => {
+  const handleFileChange = (id, file) => {
     if (!file) return;
     if (!acceptedFileTypes.includes(file.type)) {
       showToast("Only JPG, PNG, WEBP or PDF files are supported", "ti-alert-triangle");
       return;
     }
     const reader = new FileReader();
-    reader.onload = () => {
-      setRows((r) =>
-        r.map((row, i) =>
-          i === idx ? { ...row, paymentProof: { name: file.name, type: file.type, dataUrl: reader.result } } : row
-        )
-      );
-      showToast("Payment proof uploaded — status set to Paid", "ti-check");
+    reader.onload = async () => {
+      try {
+        await apiPatch(`/expenses/${id}`, { paymentProof: reader.result });
+        setRows((r) => r.map((row) => (row.id === id ? { ...row, paymentProof: { name: file.name, type: file.type, dataUrl: reader.result } } : row)));
+        showToast("Payment proof uploaded — status set to Paid", "ti-check");
+      } catch (err) {
+        showToast(err.message || "Could not upload payment proof", "ti-alert-triangle");
+      }
     };
     reader.readAsDataURL(file);
   };
 
-  const removeFile = (idx) => {
-    setRows((r) => r.map((row, i) => (i === idx ? { ...row, paymentProof: null } : row)));
-    showToast("Payment proof removed — status set to Pending", "ti-trash");
+  const removeFile = async (id) => {
+    try {
+      await apiPatch(`/expenses/${id}`, { paymentProof: null });
+      setRows((r) => r.map((row) => (row.id === id ? { ...row, paymentProof: null } : row)));
+      showToast("Payment proof removed — status set to Pending", "ti-trash");
+    } catch (err) {
+      showToast(err.message || "Could not remove payment proof", "ti-alert-triangle");
+    }
   };
 
   return (
@@ -134,7 +184,7 @@ export default function SchoolExpenses() {
               <tr><td colSpan={8} style={{ textAlign: "center", padding: 24, color: "var(--text-muted)" }}>No expenses found.</td></tr>
             )}
             {filtered.map((r) => (
-              <tr key={r._idx}>
+              <tr key={r.id}>
                 <td>{r.date}</td>
                 <td>{r.expense}</td>
                 <td>{r.category}</td>
@@ -158,7 +208,7 @@ export default function SchoolExpenses() {
                         )}
                         <div className="proof-meta">
                           <span className="proof-filename" title={r.paymentProof.name}>{r.paymentProof.name}</span>
-                          <button type="button" className="proof-remove-btn" onClick={() => removeFile(r._idx)}>
+                          <button type="button" className="proof-remove-btn" onClick={() => removeFile(r.id)}>
                             <i className="bi bi-x-circle"></i> Remove
                           </button>
                         </div>
@@ -170,7 +220,7 @@ export default function SchoolExpenses() {
                           type="file"
                           accept={acceptAttr}
                           onChange={(e) => {
-                            handleFileChange(r._idx, e.target.files?.[0]);
+                            handleFileChange(r.id, e.target.files?.[0]);
                             e.target.value = "";
                           }}
                         />
@@ -184,7 +234,7 @@ export default function SchoolExpenses() {
                   </span>
                 </td>
                 <td>
-                  <button className="btn btn-danger btn-sm" onClick={() => removeRow(r._idx)}>Delete</button>
+                  <button className="btn btn-danger btn-sm" onClick={() => removeRow(r.id)}>Delete</button>
                 </td>
               </tr>
             ))}

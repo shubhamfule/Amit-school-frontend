@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import WizardShell from "./WizardShell";
 import { TextField, TextAreaField, SelectField, RadioGroup, FileDrop } from "./Field";
+import { apiPost } from "../../teacher/utils/api";
 
 const empty = {
   fullName: "", father: "", mother: "", dob: "", gender: "", caste: "", category: "",
@@ -20,6 +21,52 @@ export default function TeacherRegistration() {
   const [f, setF] = useState(empty);
   const [submitted, setSubmitted] = useState(false);
   const set = (k) => (v) => setF((s) => ({ ...s, [k]: v }));
+
+  const submitApplication = async () => {
+    const qual = (key) => ({ board: f[key + "Board"] || "", year: f[key + "Year"] || "", pct: f[key + "Pct"] || "", division: f[key + "Div"] || "" });
+    try {
+      await apiPost("/staff-onboarding", {
+        staffId: `APP-T-${Date.now()}`,
+        fullName: f.fullName,
+        father: f.father,
+        mother: f.mother,
+        dob: f.dob,
+        gender: f.gender,
+        caste: f.caste,
+        category: f.category,
+        mobile: f.mobile,
+        email: f.email,
+        aadhaar: f.aadhaar,
+        pan: f.pan,
+        currentAddress: f.currentAddress,
+        permanentAddress: f.permanentAddress,
+        subject: f.subject,
+        classGrade: f.classGrade,
+        experience: f.experience,
+        prevSchool: f.prevSchool,
+        designation: f.designation,
+        duration: f.duration,
+        salaryExpect: f.salaryExpect,
+        availableToJoin: f.availableToJoin || undefined,
+        profile: f.profile,
+        qualifications: { ssc: qual("ssc"), hsc: qual("hsc"), grad: qual("grad"), pg: qual("pg"), bed: qual("bed") },
+        certifications: f.certifications,
+        computerSkill: f.computerSkill,
+        software: f.software,
+        ctet: f.ctet || undefined,
+        tet: f.tet || undefined,
+        documents: {
+          photo: f.photo, idProof: f.idProof, signature: f.signature, panDoc: f.pan_doc, resume: f.resume,
+          addressProof: f.addressProof, sscDoc: f.sscDoc, hscDoc: f.hscDoc, degreeDoc: f.degreeDoc,
+          pgDoc: f.pgDoc, bedDoc: f.bedDoc, tetDoc: f.tetDoc, casteDoc: f.casteDoc, domicileDoc: f.domicileDoc,
+        },
+      });
+      setSubmitted(true);
+      showToast("Teacher application submitted", "ti-check");
+    } catch (err) {
+      showToast(err.message || "Could not submit application", "ti-alert-triangle");
+    }
+  };
 
   if (submitted) {
     return (
@@ -187,7 +234,7 @@ export default function TeacherRegistration() {
       currentStep={4}
       instructions="Documents marked Required must be uploaded to proceed. Max 500 KB per document. Accepted formats: JPG, PNG, PDF."
       onBack={() => setStep(3)}
-      onNext={() => { setSubmitted(true); showToast("Teacher application submitted", "ti-check"); }}
+      onNext={submitApplication}
       nextLabel="Submit Application"
     >
       <h3 className="section-title">Identity &amp; Photo Documents</h3><hr />

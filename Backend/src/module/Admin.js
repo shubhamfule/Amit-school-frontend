@@ -195,7 +195,13 @@ const noticeSchema = new Schema(
     title: { type: String, required: true, trim: true },
     date: { type: Date, required: true, default: Date.now },
     priority: { type: String, enum: ["high", "medium", "low"], default: "medium" },
-    audience: { type: String, enum: ["All Students", "Parents", "Staff"], default: "All Students" },
+    // main-accountant's own Notices.jsx uses "All Classes"/"Teaching Staff"/
+    // "Non-Teaching Staff" instead — kept alongside, same pattern as everywhere else in this file.
+    audience: {
+      type: String,
+      enum: ["All Students", "Parents", "Staff", "All Classes", "Teaching Staff", "Non-Teaching Staff"],
+      default: "All Students",
+    },
     body: { type: String, trim: true },
     // Neither used by Admin's own Notices.jsx — student/student/Notice.jsx
     // uses `category` (academic/event/holiday/urgent) instead of priority,
@@ -208,7 +214,10 @@ const noticeSchema = new Schema(
 );
 
 // ---- Event ---------------------------------------------------------
-// Matches admin/pages/Events.jsx.
+// Matches admin/pages/Events.jsx. library/pages/Events.jsx sends its own
+// capitalized status vocabulary (Scheduled/Upcoming/Completed/Cancelled)
+// and `desc` instead of `description` — both variants kept, same pattern
+// as leaveApplicationSchema below.
 
 const eventSchema = new Schema(
   {
@@ -216,8 +225,13 @@ const eventSchema = new Schema(
     date: { type: Date, required: true },
     venue: { type: String, trim: true },
     icon: { type: String, default: "🎓" }, // emoji shown on the event card
-    status: { type: String, enum: ["upcoming", "scheduled", "planning"], default: "upcoming" },
+    status: {
+      type: String,
+      enum: ["upcoming", "scheduled", "planning", "Scheduled", "Upcoming", "Completed", "Cancelled", "Planning"],
+      default: "upcoming",
+    },
     description: { type: String, trim: true },
+    desc: { type: String, trim: true }, // library portal's own naming for description
   },
   { timestamps: true }
 );
@@ -232,6 +246,10 @@ const calendarEventSchema = new Schema(
     date: { type: Date, required: true },
     time: { type: String, trim: true }, // "HH:mm" — UI shows "All day" when empty
     color: { type: String, default: "var(--blue)" },
+    // library portal's own CalendarPage.jsx groups events by this category
+    // (and derives its own color client-side from it) instead of the
+    // freeform `color` string above — kept alongside, not required.
+    type: { type: String, enum: ["due", "holiday", "meeting", "bookfair", "workshop"] },
   },
   { timestamps: true }
 );

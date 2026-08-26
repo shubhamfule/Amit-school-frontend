@@ -11,6 +11,7 @@ router.use("/auth", require("./auth.routes"));
 router.use("/", require("./Admin.routes"));
 router.use("/", require("./Main-accountant.routes"));
 router.use("/", require("./Teacher-accountant.routes"));
+router.use("/", require("./student-accountant"));
 router.use("/", require("./non-teaching.routes"));
 router.use("/", require("./teacher.routes"));
 router.use("/", require("./student.routes"));
