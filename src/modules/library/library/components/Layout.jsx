@@ -10,7 +10,8 @@ const NAV_ITEMS = [
   { to: '/library/fines', icon: 'ti-report-money', label: 'Fines & Fees' },
   { to: '/library/calendar', icon: 'ti-calendar', label: 'Calendar' },
   { to: '/library/events', icon: 'ti-calendar-event', label: 'Events' },
-  { to: '/library/leave-applications', icon: 'ti-calendar-stats', label: 'Leave Application' },
+  { to: '/library/notices', icon: 'ti-speakerphone', label: 'Notices' },
+  { to: '/library/leave-applications', icon: 'ti-calendar-stats', label: 'Leave Applications' },
   { to: '/library/settings', icon: 'ti-settings', label: 'Settings' },
 ];
 

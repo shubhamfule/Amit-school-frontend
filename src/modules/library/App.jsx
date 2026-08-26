@@ -9,6 +9,7 @@ import IssueReturn from './library/pages/IssueReturn';
 import FinesFees from './library/pages/FinesFees';
 import CalendarPage from './library/pages/CalendarPage';
 import Events from './library/pages/Events';
+import Notices from './library/pages/Notices';
 import LeaveApplications from './library/pages/LeaveApplications';
 import Settings from './library/pages/Settings';
 
@@ -27,6 +28,7 @@ export default function App() {
             <Route path="/fines" element={<FinesFees />} />
             <Route path="/calendar" element={<CalendarPage />} />
             <Route path="/events" element={<Events />} />
+            <Route path="/notices" element={<Notices />} />
             <Route path="/leave-applications" element={<LeaveApplications />} />
             <Route path="/settings" element={<Settings />} />
           </Route>

@@ -22,6 +22,52 @@ export function exportToExcel(filename, columns, rows) {
 }
 
 /**
+ * Opens a clean, print-ready table of the given rows in a new window and
+ * triggers the browser's print dialog (so it can be saved as PDF).
+ * @param {string} title        Heading shown at the top of the sheet
+ * @param {{key: string, label: string}[]} columns
+ * @param {object[]} rows
+ */
+export function exportToPDF(title, columns, rows) {
+  const win = window.open('', '_blank', 'width=900,height=700');
+  if (!win) return;
+
+  const style = `
+    <style>
+      * { box-sizing: border-box; }
+      body { font-family: 'Segoe UI', Arial, Helvetica, sans-serif; padding: 28px; color: #1a1235; }
+      h1 { font-size: 18px; margin: 0 0 4px; color: #4d0011; }
+      p.sub { margin: 0 0 18px; font-size: 12px; color: #7a7688; }
+      table { width: 100%; border-collapse: collapse; font-size: 12px; }
+      th { text-align: left; background: #4d0011; color: #fff; padding: 8px 10px; white-space: nowrap; }
+      td { padding: 7px 10px; border-bottom: 1px solid #eee; }
+      tr:nth-child(even) td { background: #faf8fb; }
+      .meta { font-size: 11px; color: #9a96aa; margin-top: 18px; text-align: right; }
+      @media print { body { padding: 0; } }
+    </style>`;
+
+  const head = columns.map((c) => `<th>${c.label}</th>`).join('');
+  const body = rows
+    .map((row) => `<tr>${columns.map((c) => `<td>${row[c.key] ?? '—'}</td>`).join('')}</tr>`)
+    .join('');
+
+  win.document.write(`
+    <html>
+      <head><title>${title}</title>${style}</head>
+      <body>
+        <h1>Amit School</h1>
+        <p class="sub">${title}</p>
+        <table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>
+        <div class="meta">Generated on ${new Date().toLocaleString()}</div>
+      </body>
+    </html>
+  `);
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 300);
+}
+
+/**
  * Opens a clean, print-ready clearance receipt for a single clearance form
  * entry and triggers the browser's print dialog (so it can be saved as PDF).
  * @param {{label: string, value: string}[]} fields
